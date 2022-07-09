@@ -19,21 +19,19 @@ To get started, you will have to copy a few files and configure a few variables.
 
 Next, configure a few required Apps Script variables:
 
-1. Open `BacklogConfig.gs` and replace the value of `BacklogConfig.BACKLOG_SHEET_ID` with the ID of the `Backlog` sheet in your spreadsheet. You can find the ID of the sheet in the URL after clicking on it in the sheet strip at the bottom: `https://docs.google.com/spreadsheets/d/.../edit#gid=SHEET_ID`
-2. Open `config/scheduler_config.gs` and set the value of `SchedulerConfig.CALENDAR_ID` to the ID of your Google calendar. This will allow you to easily [block time on your calendar](#block-time-on-your-calendar) for your to-dos. You can find the ID of your calendar in your calendar settings. If you want to use your main calendar, simply enter the email address of your Workspace account, for example max@example.com.
-3. Open `config/inbox_importer.gs` and set the value of `InboxImporterConfig.EMAIL_ADDRESS` to the email address of your Workspace account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
+1. Open `config/scheduler_config.gs` and set the value of `SchedulerConfig.CALENDAR_ID` to the ID of your Google calendar. This will allow you to easily [block time on your calendar](#block-time-on-your-calendar) for your to-dos. You can find the ID of your calendar in your calendar settings. If you want to use your main calendar, simply enter the email address of your Workspace account, for example max@example.com.
+2. Open `config/inbox_importer.gs` and set the value of `InboxImporterConfig.EMAIL_ADDRESS` to the email address of your Workspace account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
 
 To be able to quickly open your to-do list and add items from Chrome's Omnibox, also install the 'Mission Control' Chrome extension:
 
 1. Download the `chrome_extension` folder to your computer. If you like, you can rename the folder to something else.
 2. Open `background.js`.
 3. Replace the value of `SPREADSHEET_ID` with the ID of the spreadsheet you created above. You can find the ID in the URL of your spreadsheet: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
-4. Replace the value of `SHEET_ID` with the ID of the `Backlog` sheet in your spreadsheet. You can find the ID of the sheet in the URL after clicking on it in the sheet strip at the bottom: `https://docs.google.com/spreadsheets/d/.../edit#gid=SHEET_ID`
-5. Open `manifest.json`.
-6. Replace the value of `"client_id"` under `"oauth2"` with a valid [Google Cloud Platform OAuth client ID](https://developer.chrome.com/docs/extensions/mv3/tut_oauth/#oauth_client) that grants you access to the Google Sheets API (read and write access).
-7. Open Chrome and go to `chrome://extensions`.
-8. Turn on "Developer mode" in the top right corner.
-9. Click "Load unpacked" and select the `chrome_extension` folder you downloaded earlier.
+4. Open `manifest.json`.
+5. Replace the value of `"client_id"` under `"oauth2"` with a valid [Google Cloud Platform OAuth client ID](https://developer.chrome.com/docs/extensions/mv3/tut_oauth/#oauth_client) that grants you access to the Google Sheets API (read and write access).
+6. Open Chrome and go to `chrome://extensions`.
+7. Turn on "Developer mode" in the top right corner.
+8. Click "Load unpacked" and select the `chrome_extension` folder you downloaded earlier.
 
 
 ## Using Mission Control
