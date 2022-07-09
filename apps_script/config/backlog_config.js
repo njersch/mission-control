@@ -41,7 +41,7 @@ BacklogConfig.INBOX_IMPORT_INTERVAL = 5; // in minutes
 BacklogConfig.SCHEDULE_RECURRING_ITEMS_HOUR = 3;
 
 // Name of sheet with recurring items
-BacklogConfig.RECURRING_SHEET_NAME = 'Recurring';
+BacklogConfig.RECURRING_SHEET_ID = 2031303097;
 
 // Number of header rows in sheet with recurring items
 BacklogConfig.RECURRING_HEADER_ROWS = 1;

@@ -38,7 +38,7 @@ class Backlog {
 
       // Ignore edits from other sheets
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-      if (sheet.getName() != BacklogConfig.SHEET_NAME) {
+      if (sheet.getSheetId() != BacklogConfig.SHEET_ID) {
         return;
       }
       
@@ -122,12 +122,23 @@ class Backlog {
     builderFunction(builder).create();
   }
 
+  /**
+   * Returns a sheet for a given sheet ID.
+   */
+  static getSheetById(id) {
+    const allSheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+    const matchingSheets = allSheets.filter((s) => s.getSheetId() === id);
+    if (matchingSheets.length == 0) {
+      return null;
+    }
+    return matchingSheets[0];
+  }
 
   /**
    * Returns the sheet with the backlog.
    */
   static getBacklogSheet() {
-    return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BacklogConfig.SHEET_NAME);
+    return this.getSheetById(BacklogConfig.SHEET_ID);
   }
 
 
@@ -462,7 +473,7 @@ class Backlog {
    * Gets sheet with the recurring backlog items.
    */
   static getRecurringBacklogSheet() {
-    return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BacklogConfig.RECURRING_SHEET_NAME);
+    return this.getSheetById(BacklogConfig.RECURRING_SHEET_ID);
   }
 
 
@@ -642,12 +653,12 @@ class Backlog {
 
 
   /**
-	 * Imports items from inbox sent to special email address (e.g. max+todo@example.com).
-	 */
+   * Imports items from inbox sent to special email address (e.g. max+todo@example.com).
+   */
   static importFromInbox() {
     InboxImporter.importFromInbox((title) => {
       const item = new BacklogItem(title, null, null, InboxImporterConfig.NOTES_TAG);
-			this.insertBacklogItem(item);
+      this.insertBacklogItem(item);
     });
   }
 
