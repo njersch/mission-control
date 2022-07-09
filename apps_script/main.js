@@ -23,7 +23,6 @@ function onSelectionChange(e) {
 function createMenu() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('Custom')
-    .addItem('Calculate meeting load', 'showMeetingLoad')
     .addItem('Schedule events', 'scheduleEvents')
     .addItem('Install triggers if needed', 'installTriggersIfNeeded')
     .addToUi();
