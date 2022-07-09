@@ -1,0 +1,24 @@
+{
+  "name": "Mission Control",
+  "description": "Quickly add backlog items from the Omnibox",
+  "version": "1.0",
+  "icons": {
+    "128": "icon128.png"
+  },
+  "omnibox": { "keyword" : "mc" },
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "oauth2": {
+    "client_id": "",
+    "scopes":["https://www.googleapis.com/auth/spreadsheets"]
+  },
+  "permissions": [
+    "identity",
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": ["https://script.googleapis.com/*"]
+}
