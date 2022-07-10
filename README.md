@@ -3,24 +3,25 @@
 A simple and customisable backlog system for Google Workspace users that helps you with ["Getting Things Done"](https://en.wikipedia.org/wiki/Getting_Things_Done).
 
 - **Easy entry from anywhere:** Add to-dos from any Chrome tab and any device
-- **Stay focused:** Snooze to-dos, assign priorities and automatically block time on your calendar, so you can focus only what's important to you now
+- **Stay focused:** Snooze to-dos, assign priorities and automatically block time on your calendar, so you can focus on what's important to you now
 - **All your to-dos in one place:** Pull to-dos from other Workspace services like Gmail, so you can manage all your work in one place
+- **Purely Workspace-based:** No need for sharing confidential data or buying subscriptions beyond Google Workspace
 
 
 ## Getting Started
 
 To get started, you will have to copy a few files and configure a few variables. Don't worry though, it should not take more than just a few minutes.
 
-1. Make a copy of [this spreadsheet](https://docs.google.com/spreadsheets/d/1T5oizbxcr-_fVzoKcx92o2PO_DikLpdj8o8_cv7lvPc/edit?usp=sharing&resourcekey=0-aHUjSv69rN8c3A76sPSxDA) with the Google Account that you'd like to use. Since this will be your to-do list from now on, you might want to bookmark it somewhere.
+1. Make a copy of [this spreadsheet](https://docs.google.com/spreadsheets/d/1T5oizbxcr-_fVzoKcx92o2PO_DikLpdj8o8_cv7lvPc/edit?usp=sharing&resourcekey=0-aHUjSv69rN8c3A76sPSxDA) with the Google Account that you'd like to use.
 2. Open the spreadsheet and go to `Extensions` > `Apps Script`.
-3. Copy each file from the `apps_script` folder in this repository into your new Apps Script project. It's fine to rename files or change the folder hierarchy.
+3. Copy each file from the `apps_script` folder in this repository, including the `config` folder, into your new Apps Script project. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to create an Apps Script project and push the files to your project.
 4. Go to `Extensions` > `Apps Script` and click the settings icon. Make sure your timezone is selected in your project settings.
 5. Reload the spreadsheet, open the `Custom` menu at the top and click `Install triggers if needed`. This will install Apps Script triggers to keep your backlog up to date in the background.
 
 Next, configure a few required Apps Script variables:
 
 1. Open `config/scheduler_config.gs` and set the value of `SchedulerConfig.CALENDAR_ID` to the ID of your Google calendar. This will allow you to easily [block time on your calendar](#block-time-on-your-calendar) for your to-dos. You can find the ID of your calendar in your calendar settings. If you want to use your main calendar, simply enter the email address of your Workspace account, for example max@example.com.
-2. Open `config/inbox_importer.gs` and set the value of `InboxImporterConfig.EMAIL_ADDRESS` to the email address of your Workspace account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
+2. Open `config/inbox_importer_config.gs` and set the value of `InboxImporterConfig.EMAIL_ADDRESS` to the email address of your Workspace account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
 
 To be able to quickly open your to-do list and add items from Chrome's Omnibox, also install the 'Mission Control' Chrome extension:
 
@@ -42,7 +43,7 @@ To quickly access your backlog while in Chrome, type `mc` (for **M**ission **C**
 
 ![Open backlog from anywhere](./assets/open_backlog.png)
 
-Similarly, you can quickly navigate to Gmail, Meet and Calendar by typing `mc`, `SPACE` and then `g` (for Gmail), `m` (for Meet), or `c` (for Calendar), respectively.
+Similarly, you can quickly navigate to Gmail, Meet and Calendar by typing `mc`, `SPACE` and then `g` (for Gmail), `m` (for Meet), or `c` (for Calendar). It's easy to add your own shortcuts to `chrome_extension/background.js`.
 
 
 ### Create a new to-do from anywhere in Chrome
