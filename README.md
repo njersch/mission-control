@@ -4,6 +4,7 @@ A simple and customisable backlog system for Google Workspace users that helps y
 
 - **Easy entry from anywhere:** Add to-dos from any Chrome tab and any device
 - **Stay focused:** Snooze to-dos, assign priorities and automatically block time on your calendar, so you can focus on what's important to you now
+- **Speed up your task management:** Add and change information fast and efficiently – that's what spreadsheets are good at!
 - **All your to-dos in one place:** Pull to-dos from other Workspace services like Gmail, so you can manage all your work in one place
 - **Purely Workspace-based:** No need for sharing confidential data or buying subscriptions beyond Google Workspace
 
@@ -14,7 +15,7 @@ To get started, you will have to copy a few files and configure a few variables.
 
 1. Make a copy of [this spreadsheet](https://docs.google.com/spreadsheets/d/1T5oizbxcr-_fVzoKcx92o2PO_DikLpdj8o8_cv7lvPc/edit?usp=sharing&resourcekey=0-aHUjSv69rN8c3A76sPSxDA) with the Google Account that you'd like to use.
 2. Open the spreadsheet and go to `Extensions` > `Apps Script`.
-3. Copy each file from the `apps_script` folder in this repository, including the `config` folder, into your new Apps Script project. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to create an Apps Script project and push the files to your project.
+3. Copy each `.js` file from the `apps_script` folder in this repository, including the `config` folder, into your new Apps Script project as a `.gs` file. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to create an Apps Script project and push the files to your project.
 4. Go to `Extensions` > `Apps Script` and click the settings icon. Make sure your timezone is selected in your project settings.
 5. Reload the spreadsheet, open the `Custom` menu at the top and click `Install triggers if needed`. This will install Apps Script triggers to keep your backlog up to date in the background.
 
@@ -110,3 +111,4 @@ Mission Control will look for free slots on your calendar and create events for 
 ### Work from a different timezone
 
 If you are working from a different timezone than usually, make sure to update the script timezone accordingly as described in the [Getting Started](#getting-started) section.
+
