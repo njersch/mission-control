@@ -301,8 +301,13 @@ class Backlog {
     if (descriptions == null || descriptions.length == 0) {
       return;
     }
+
+    // Concatenate old and new descriptions, ignoring duplicates
     const oldDescriptions = this.getQueuedNextItemDescriptions() || [];
+    descriptions = descriptions.filter((d) => oldDescriptions.indexOf(d) < 0);
     const allDescriptions = oldDescriptions.concat(descriptions);
+
+    // Set document property
     const properties = PropertiesService.getDocumentProperties();
     properties.setProperty(
       BacklogConfig.NEXT_ITEM_DESCRIPTIONS_PROPERTY_KEY,
@@ -334,24 +339,26 @@ class Backlog {
    * Shows dialog with items marked as 'Next' if any updated are queued.
    */
   static showSetToNextDialogIfNeeded() {
-    
+
     // Get queued descriptions
     const descriptions = this.getQueuedNextItemDescriptions();
     if (descriptions == null || descriptions.length == 0) {
       return;
     }
     
-    // Show dialog
-    const ui = SpreadsheetApp.getUi();
-    const response = ui.alert(
-      `${descriptions.length} waiting ${descriptions.length == 1 ? 'item' : 'items'} moved to '${BacklogConfig.STATUS_NEXT}'`,
-      descriptions.join('\n'),
-      ui.ButtonSet.OK);
+    // Show dialog, guarded by lock to avoid queueing up multiple instances
+    this.doWithDocumentLock(20000, () => {
+      const ui = SpreadsheetApp.getUi();
+      const response = ui.alert(
+        `${descriptions.length} waiting ${descriptions.length == 1 ? 'item' : 'items'} moved to '${BacklogConfig.STATUS_NEXT}'`,
+        descriptions.join('\n'),
+        ui.ButtonSet.OK);
 
-    // Dequeue descriptions
-    if (response == ui.Button.OK) {
-      this.dequeueNextItemDescriptions();
-    }
+      // Dequeue descriptions
+      if (response == ui.Button.OK) {
+        this.dequeueNextItemDescriptions();
+      }  
+    });
   }
 
 
@@ -671,4 +678,26 @@ class Backlog {
     ui.alert('Error', `${error}\n\n${error.stack}`, ui.ButtonSet.OK);
   }
   
+
+  /**
+   * Runs the given function, guarded by a document-level lock. If the lock
+   * can't be acquired before the provided time-out, the function is
+   * not run. Returns whether function was run.
+   */
+  static doWithDocumentLock(timeoutInMillis, f) {
+    
+    // Try to acquire document lock
+    const lock = LockService.getDocumentLock();
+    if (!lock.tryLock(timeoutInMillis)) {
+      return false;
+    }
+
+    // Execute and release
+    try {
+      f();
+      return true;
+    } finally {
+      lock.releaseLock();
+    }
+  }
 }
