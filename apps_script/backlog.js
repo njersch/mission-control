@@ -186,7 +186,7 @@ class Backlog {
 
 
   /**
-   * Set status of waiting items that have become due to 'Next'.
+   * Sets status of waiting items that have become due to 'Next'.
    */
   static setWaitingItemsToNext() {
     
