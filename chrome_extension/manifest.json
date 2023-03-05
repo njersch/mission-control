@@ -18,7 +18,8 @@
   "permissions": [
     "identity",
     "tabs",
-    "notifications"
+    "notifications",
+    "storage"
   ],
   "host_permissions": ["https://script.googleapis.com/*"]
 }
