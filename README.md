@@ -57,7 +57,7 @@ You enter additional information directly from the Omnibox:
 
 - Assign to-do to a **project** by entering `#project:` followed by a project name. If a project name contains whitespace, make sure to wrap everything in parentheses.
 - Set a **priority** by entering `#prio:`, followed by the desired priority.
-- Set a **date** until which to snooze a to-do by entering `#when:`, followed by any of the expressions to snooze items [described below](#waiting-view).
+- Set a **date** until which to snooze a to-do by entering `#when:`, followed by any of the expressions to snooze items [described below](#waiting-view). You can use `0` to set the status to `Next`.
 
 
 ### Create a new to-do from your other devices
