@@ -53,6 +53,12 @@ To create a new to-do from anywhere in Chrome, type `mc` into the Omnibox and hi
 
 ![Create to-dos from the Omnibox](./assets/create_from_omnibox.png)
 
+You enter additional information directly from the Omnibox:
+
+- Assign to-do to a **project** by entering `#project:` followed by a project name. If a project name contains whitespace, make sure to wrap everything in parentheses.
+- Set a **priority** by entering `#prio:`, followed by the desired priority.
+- Set a **date** until which to snooze a to-do by entering `#when:`, followed by any of the expressions to snooze items [described below](#waiting-view).
+
 
 ### Create a new to-do from your other devices
 
