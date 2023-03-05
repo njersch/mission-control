@@ -9,6 +9,10 @@ const PROJECT_NAMES_KEY = 'project_names';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 
+/** Base URL for Google Sheets API */
+const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets'
+
+
 /** Tags and corresponding suggestions */
 const TAGS = [
   {
@@ -52,7 +56,8 @@ function setCachedProjectNames(names) {
  * Updates cached project names asynchronously
  */
 function updatedCachedProjectNames() {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.SPREADSHEET_ID}/values/R2C${config.PROJECT_COLUMN}:C${config.PROJECT_COLUMN}?majorDimension=COLUMNS`;
+  const range = `R${1 + config.HEADER_ROWS}C${config.PROJECT_COLUMN}:C${config.PROJECT_COLUMN}`; // in R1C1 notation
+  const url = `${SHEETS_API}/${config.SPREADSHEET_ID}/values/${range}?majorDimension=COLUMNS`;
   sendRequest('GET', url)
       .then((response) => response.json())
       .then(({values}) => {
@@ -289,7 +294,7 @@ function insertItem(input) {
   }
 
   // Insert item into spreadsheet and show notification if successful
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.SPREADSHEET_ID}:batchUpdate`;
+  const url = `${SHEETS_API}/${config.SPREADSHEET_ID}:batchUpdate`;
   const body = JSON.stringify({requests: batchUpdateRequests(title, project, priority, status, date)});
   sendRequest('POST', url, body)
       .then(() => {
