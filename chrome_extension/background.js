@@ -133,7 +133,7 @@ function parseDateValue(value) {
   }
 
   // Parse shortcuts like “Monday” or “mon”
-  if(value == null || value.length < 3) {
+  if(value == null || value.length !== 3) {
     return -1;
   }
 
