@@ -88,9 +88,9 @@ function updatedCachedProjectNames() {
  */
 function parseInput(input) {
 
-  // Regex to extract tags from raw input. The capture group 'tag' captures the tag name (e.g. "project") and 'value'
-  // captures the corresponding value (e.g. "My Project")
-  const matches = [...input.matchAll(/#(?<tag>\w*)(:(?<value>(\w*)|\(([^()]*)\))?)?/g)];
+  // Regex to extract tags from raw input. The capture group 'tag' captures the tag name (e.g. "project"), 'value'
+  // captures the corresponding value (e.g. "My Project"), and 'raw' the full expression (e.g. "#project:(My Project)")
+  const matches = [...input.matchAll(/(^|\s)(?<raw>#(?<tag>\w*)(:(?<value>(\w*)|\(([^()]*)\))?)?)/g)];
 
   // Extract title of item by removing tags and values
   let title = input;
@@ -109,7 +109,7 @@ function parseInput(input) {
       return {
         tag: match.groups.tag,
         value: value,
-        raw: match[0]
+        raw: match.groups.raw
       }
     });
 
