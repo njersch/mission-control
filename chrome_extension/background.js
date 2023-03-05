@@ -127,18 +127,21 @@ function parseInput(input) {
  */
 function parseDateValue(value) {
 
+  if(value == null) {
+    return -1;
+  }
+
   // Parse non-negative integer value
   if (/^[0-9]+$/.test(value)) {
     return parseInt(value);
   }
 
-  // Parse shortcuts like “Monday” or “mon”
-  if(value == null || value.length !== 3) {
-    return -1;
-  }
-
-  // Determine day of week
-  const dayOfWeek = DAY_NAMES.findIndex((name) => name.toLowerCase().startsWith(value.toLowerCase()));
+  // // Parse shortcuts like “Monday” or “mon” and determine day of week
+  const dayOfWeek = DAY_NAMES.findIndex((day) => {
+    const lowerDay = day.toLowerCase();
+    const lowerValue = value.toLowerCase();
+    return lowerValue.length === 3 && lowerDay.startsWith(lowerValue) || lowerDay === lowerValue;
+  });
 
   // Not a valid shortcut
   if (dayOfWeek < 0) {
