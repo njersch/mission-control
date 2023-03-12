@@ -38,7 +38,7 @@ class Backlog {
 
       // Ignore edits from other sheets
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-      if (sheet.getSheetId() != BacklogConfig.SHEET_ID) {
+      if (sheet.getSheetId() !== BacklogConfig.SHEET_ID) {
         return;
       }
       
@@ -56,12 +56,12 @@ class Backlog {
       
       // Determine action for column
       const column = range.getColumn();
-      if (column == BacklogConfig.COLUMN_PROJECT) {
+      if (column === BacklogConfig.COLUMN_PROJECT) {
         this.setDefaultProjectIfNeeded(sheet, row);
-      } else if (column == BacklogConfig.COLUMN_WAITING) {
+      } else if (column === BacklogConfig.COLUMN_WAITING) {
         this.setWaiting(sheet, row);
         this.convertShortcutToDateIfNeeded(sheet, row);
-      } else if (column == BacklogConfig.COLUMN_STATUS) {  
+      } else if (column === BacklogConfig.COLUMN_STATUS) {
         this.clearWaitingDateIfNeeded(sheet, row, e.oldValue, e.value);
         this.deleteRowIfNeeded(sheet, row, e.value);
       }
@@ -128,7 +128,7 @@ class Backlog {
   static getSheetById(id) {
     const allSheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
     const matchingSheets = allSheets.filter((s) => s.getSheetId() === id);
-    if (matchingSheets.length == 0) {
+    if (matchingSheets.length === 0) {
       return null;
     }
     return matchingSheets[0];
@@ -179,7 +179,7 @@ class Backlog {
   static setDefaultProjectIfNeeded(sheet, row) {
     const range = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT);
     const project = range.getValue();
-    if (project == BacklogConfig.DEFAULT_PROJECT_SHORTCUT) {
+    if (project === BacklogConfig.DEFAULT_PROJECT_SHORTCUT) {
       range.setValue(BacklogConfig.DEFAULT_PROJECT);
     } 
   }
@@ -207,7 +207,7 @@ class Backlog {
       if (waitingDate instanceof Date && waitingDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET <= endOfDay.getTime()) {
         const statusRange = sheet.getRange(i, BacklogConfig.COLUMN_STATUS);
         const status = statusRange.getValue();
-        if (status == BacklogConfig.STATUS_WAITING) {
+        if (status === BacklogConfig.STATUS_WAITING) {
           statusRange.setValue(BacklogConfig.STATUS_NEXT);
           waitingDateRange.clearContent();
           const title = sheet.getRange(i, BacklogConfig.COLUMN_TITLE).getValue();
@@ -237,7 +237,7 @@ class Backlog {
    * Clears waiting date in given row if status changed from waiting to something else.
    */
   static clearWaitingDateIfNeeded(sheet, row, oldStatus, newStatus) {
-    if (oldStatus == BacklogConfig.STATUS_WAITING && newStatus != BacklogConfig.STATUS_WAITING) {
+    if (oldStatus === BacklogConfig.STATUS_WAITING && newStatus !== BacklogConfig.STATUS_WAITING) {
       const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
       range.clearContent();
     }
@@ -288,7 +288,7 @@ class Backlog {
    * Deletes row if item is marked as completed.
    */
   static deleteRowIfNeeded(sheet, row, newValue) {
-    if (newValue == BacklogConfig.STATUS_DONE) {
+    if (newValue === BacklogConfig.STATUS_DONE) {
       sheet.deleteRow(row);
     }
   }
@@ -298,7 +298,7 @@ class Backlog {
    * Queues an array of descriptions of items marked as 'Next' for later display.
    */
   static queueNextItemDescriptions(descriptions) {
-    if (descriptions == null || descriptions.length == 0) {
+    if (descriptions == null || descriptions.length === 0) {
       return;
     }
 
@@ -342,7 +342,7 @@ class Backlog {
 
     // Get queued descriptions
     const descriptions = this.getQueuedNextItemDescriptions();
-    if (descriptions == null || descriptions.length == 0) {
+    if (descriptions == null || descriptions.length === 0) {
       return;
     }
     
@@ -350,12 +350,12 @@ class Backlog {
     this.doWithDocumentLock(20000, () => {
       const ui = SpreadsheetApp.getUi();
       const response = ui.alert(
-        `${descriptions.length} waiting ${descriptions.length == 1 ? 'item' : 'items'} moved to '${BacklogConfig.STATUS_NEXT}'`,
+        `${descriptions.length} waiting ${descriptions.length === 1 ? 'item' : 'items'} moved to '${BacklogConfig.STATUS_NEXT}'`,
         descriptions.join('\n'),
         ui.ButtonSet.OK);
 
       // Dequeue descriptions
-      if (response == ui.Button.OK) {
+      if (response === ui.Button.OK) {
         this.dequeueNextItemDescriptions();
       }  
     });
@@ -492,7 +492,7 @@ class Backlog {
    */
   static findNextDate(cadenceType, cadenceFactor, day, lastDate) {
     
-    if (cadenceType == BacklogConfig.CADENCE_TYPE_MONTHLY) {
+    if (cadenceType === BacklogConfig.CADENCE_TYPE_MONTHLY) {
 
       // Find month
       let date;
@@ -529,7 +529,7 @@ class Backlog {
       // Return date, converted back to specified timezone
       return new Date(date.getTime() - BacklogConfig.UTC_TIMEZONE_OFFSET);
 
-    } else if (cadenceType == BacklogConfig.CADENCE_TYPE_WEEKLY) {
+    } else if (cadenceType === BacklogConfig.CADENCE_TYPE_WEEKLY) {
       
       let date;
       if (lastDate == null) {
@@ -619,7 +619,7 @@ class Backlog {
       const value = sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).getValue();
       
       // Skip if empty
-      if (value == null || value == '') {
+      if (value == null) {
         return;
       }
 
@@ -644,7 +644,7 @@ class Backlog {
 
       // Add project to title
       const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
-      if (project != null && project != '') {
+      if (project != null) {
         title = `${title} (${project})`;
       }
 
