@@ -135,7 +135,7 @@ class Backlog {
     return matchingSheets[0];
   }
 
-  
+
   /**
    * Returns the sheet with the backlog.
    */
@@ -201,19 +201,17 @@ class Backlog {
     const updatedItemDescriptions = [];
 
     // Iterate through all waiting dates
-    this.iterateBacklogRows((i) => {
-      const waitingDateRange = sheet.getRange(i, BacklogConfig.COLUMN_WAITING);
-      const waitingDate = waitingDateRange.getValue();
-      
+    this.iterateNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING, (row, waitingDate) => {
+
       // Mark as 'Next' if waiting date is in the past
       if (waitingDate instanceof Date && waitingDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET <= endOfDay.getTime()) {
-        const statusRange = sheet.getRange(i, BacklogConfig.COLUMN_STATUS);
+        const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
         const status = statusRange.getValue();
         if (status === BacklogConfig.STATUS_WAITING) {
           statusRange.setValue(BacklogConfig.STATUS_NEXT);
-          waitingDateRange.clearContent();
-          const title = sheet.getRange(i, BacklogConfig.COLUMN_TITLE).getValue();
-          const project = sheet.getRange(i, BacklogConfig.COLUMN_PROJECT).getValue();
+          sheet.getRange(row, BacklogConfig.COLUMN_WAITING).clearContent();
+          const title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
+          const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
           updatedItemDescriptions.push(`${title} (${project})`);
         }
       }
@@ -368,11 +366,16 @@ class Backlog {
    * Invokes the given function for each backlog item with the
    * corresponding row number.
    */
-  static iterateBacklogRows(fn) {
+  static iterateNonEmptyBacklogRowsInColumn(column, fn) {
     const sheet = this.getBacklogSheet();
     const lastRow = sheet.getLastRow();
-    for (let i = BacklogConfig.HEADER_ROWS + 1; i <= Math.max(lastRow, 1000); i++) {
-      fn(i);
+    const range = sheet.getRange(BacklogConfig.HEADER_ROWS + 1, column, Math.min(lastRow, 1000) - BacklogConfig.HEADER_ROWS);
+    const values = range.getValues();
+    for (const [i, rowValues] of values.entries()) {
+      const value = rowValues[0];
+      if (value !== '') {
+        fn(BacklogConfig.HEADER_ROWS + i + 1, value);
+      }
     }
   }
 
@@ -615,15 +618,9 @@ class Backlog {
    */
   static scheduleEvents() {
 
-    this.iterateBacklogRows((row) => {
-      
-      const sheet = this.getBacklogSheet();
-      const value = sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).getValue();
-      
-      // Skip if empty
-      if (value == null) {
-        return;
-      }
+    const sheet = this.getBacklogSheet();
+
+    this.iterateNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_SCHEDULED_TIME, (row, value) => {
 
       // Parse and validate input
       const regex = /^(?<length>[0-9]+)(?::\s+(?<title>\S.*))?$/;
