@@ -122,6 +122,7 @@ class Backlog {
     builderFunction(builder).create();
   }
 
+
   /**
    * Returns a sheet for a given sheet ID.
    */
@@ -134,6 +135,7 @@ class Backlog {
     return matchingSheets[0];
   }
 
+  
   /**
    * Returns the sheet with the backlog.
    */
