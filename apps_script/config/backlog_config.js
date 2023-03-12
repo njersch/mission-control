@@ -62,3 +62,7 @@ BacklogConfig.CADENCE_TYPE_MONTHLY = 'month(s)';
 
 // Property for queued descriptions of items marked as 'Next'
 BacklogConfig.NEXT_ITEM_DESCRIPTIONS_PROPERTY_KEY = 'next_item_descriptions';
+
+// Property for time (in number of milliseconds since the epoch) until when
+// dialogs informing user that items have been set to 'Next' are suspended
+BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME = 'set_to_next_dialogs_suspended_time';

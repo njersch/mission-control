@@ -346,19 +346,30 @@ class Backlog {
       return;
     }
     
-    // Show dialog, guarded by lock to avoid queueing up multiple instances
-    this.doWithDocumentLock(20000, () => {
-      const ui = SpreadsheetApp.getUi();
-      const response = ui.alert(
+    // Check if dialogs have been suspended
+    const properties = PropertiesService.getDocumentProperties();
+    const suspendedTime = properties.getProperty(BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME);
+    if (suspendedTime != null && Date.now() < JSON.parse(suspendedTime)) {
+      return;
+    }
+
+    // Suspend dialogs for some time to avoid showing multiple instances
+    properties.setProperty(
+        BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME,
+        JSON.stringify(Date.now() + 30 * 1000)
+    );
+
+    // Show UI
+    const ui = SpreadsheetApp.getUi();
+    const response = ui.alert(
         `${descriptions.length} waiting ${descriptions.length === 1 ? 'item' : 'items'} moved to '${BacklogConfig.STATUS_NEXT}'`,
         descriptions.join('\n'),
         ui.ButtonSet.OK);
 
-      // Dequeue descriptions
-      if (response === ui.Button.OK) {
-        this.dequeueNextItemDescriptions();
-      }  
-    });
+    // Dequeue descriptions
+    if (response === ui.Button.OK) {
+      this.dequeueNextItemDescriptions();
+    }
   }
 
 
@@ -675,28 +686,5 @@ class Backlog {
   static showErrorAlert(error) {
     const ui = SpreadsheetApp.getUi();
     ui.alert('Error', `${error}\n\n${error.stack}`, ui.ButtonSet.OK);
-  }
-  
-
-  /**
-   * Runs the given function, guarded by a document-level lock. If the lock
-   * can't be acquired before the provided time-out, the function is
-   * not run. Returns whether function was run.
-   */
-  static doWithDocumentLock(timeoutInMillis, f) {
-    
-    // Try to acquire document lock
-    const lock = LockService.getDocumentLock();
-    if (!lock.tryLock(timeoutInMillis)) {
-      return false;
-    }
-
-    // Execute and release
-    try {
-      f();
-      return true;
-    } finally {
-      lock.releaseLock();
-    }
   }
 }
