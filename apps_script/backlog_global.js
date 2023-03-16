@@ -35,11 +35,20 @@ function setWaitingItemsToNext() {
 
 
 /**
- * Function to schedule events for backlog item, globally callable for
- * example from a trigger.
+ * Function to schedule events for backlog items loudly, globally callable
+ * for example from a trigger.
  */
-function scheduleEvents() {
-  Backlog.scheduleEvents();
+function scheduleEventsLoudly() {
+  Backlog.scheduleEvents(true);
+}
+
+
+/**
+ * Function to schedule events for backlog items silently, globally callable
+ * for example from a trigger.
+ */
+function scheduleEventsSilently() {
+  Backlog.scheduleEvents(false);
 }
 
 

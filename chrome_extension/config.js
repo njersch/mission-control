@@ -4,6 +4,7 @@ export const SHEET_ID = 0;
 export const HEADER_ROWS = 1;
 
 // Column indices
+export const DURATION_COLUMN = 1; // one-based
 export const TITLE_COLUMN = 3; // one-based
 export const PROJECT_COLUMN = 5; // one-based
 export const PRIORITY_COLUMN = 6; // one-based
@@ -18,3 +19,7 @@ export const STATUS_NEXT = 'Next';
 export const TAG_PROJECT = 'project';
 export const TAG_PRIORITY = 'prio';
 export const TAG_DATE = 'when';
+export const TAG_SCHEDULE = 'calendar';
+
+// Key for developer metadata to mark an item as automatically schedulable
+export const SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY = 'silently_schedulable';

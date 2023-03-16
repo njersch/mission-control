@@ -93,6 +93,9 @@ class Backlog {
     this.installUniqueTriggerIfNeeded(importFromInbox, (builder) => {
       return builder.timeBased().everyMinutes(BacklogConfig.INBOX_IMPORT_INTERVAL);
     });
+    this.installUniqueTriggerIfNeeded(scheduleEventsSilently, (builder) => {
+      return builder.timeBased().everyMinutes(BacklogConfig.SCHEDULE_EVENTS_INTERVAL);
+    });
     this.installUniqueTriggerIfNeeded(scheduleRecurringBacklogItems, (builder) => {
       return builder.timeBased().atHour(BacklogConfig.SCHEDULE_RECURRING_ITEMS_HOUR).everyDays(1);
     });
@@ -627,7 +630,7 @@ class Backlog {
   /**
    * Parses input in scheduling column and creates an event.
    */
-  static scheduleEvents() {
+  static scheduleEvents(loudly) {
 
     const sheet = this.getBacklogSheet();
 
@@ -637,10 +640,31 @@ class Backlog {
       const regex = /^(?<length>[0-9]+)(?::\s+(?<title>\S.*))?$/;
       const match = value.toString().match(regex);
       if (match == null) {
-        const ui = SpreadsheetApp.getUi();
-        ui.alert('Invalid input', 'Enter time in minutes (for example "30") or time plus a title (for example "30: Do something")', ui.ButtonSet.OK);
+        if (loudly) {
+          const ui = SpreadsheetApp.getUi();
+          ui.alert('Invalid input', 'Enter time in minutes (for example "30")', ui.ButtonSet.OK);
+        }
         return;
       }
+
+      // If scheduling silently, only schedule items that have been marked as silently schedulable.
+      if (!loudly) {
+
+        // Retrieve metadata for relevant key
+        const metadata = sheet
+            .getRange(`${row}:${row}`) // needs to be entire row
+            .getDeveloperMetadata()
+            .find((d) => d.getKey() === BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY);
+
+        // Ignore item if it is not marked as silently schedulable
+        if (!metadata) {
+          return;
+        }
+
+        // Mark item as processed by removing metadata
+        metadata.remove();
+      }
+
       const length = Number.parseInt(match.groups.length);
       let title = match.groups.title;
 
@@ -654,7 +678,7 @@ class Backlog {
 
       // Add project to title
       const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
-      if (project != null) {
+      if (project) {
         title = `${title} (${project})`;
       }
 
@@ -662,8 +686,10 @@ class Backlog {
       if (Scheduler.tryScheduleEvent(title, length, day)) {
         sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
       } else {
-        const ui = SpreadsheetApp.getUi();
-        ui.alert('Not enough time', `Could not schedule event "${title}"`, ui.ButtonSet.OK);
+        if (loudly) {
+          const ui = SpreadsheetApp.getUi();
+          ui.alert('You\'re out of time', `Could not schedule event "${title}" before the end of the day`, ui.ButtonSet.OK);
+        }
       }
     });
   }

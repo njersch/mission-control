@@ -35,7 +35,10 @@ BacklogConfig.SET_WAITING_ITEMS_TO_NEXT_ITEMS_HOUR = 3;
 BacklogConfig.UTC_TIMEZONE_OFFSET = -new Date().getTimezoneOffset()*60*1000; // in ms
 
 // Refresh interval for importing items from the inbox
-BacklogConfig.INBOX_IMPORT_INTERVAL = 5; // in minutes 
+BacklogConfig.INBOX_IMPORT_INTERVAL = 5; // in minutes
+
+// Refresh interval for scheduling items entered from the Omnibox
+BacklogConfig.SCHEDULE_EVENTS_INTERVAL = 1; // in minutes
 
 // Hour after midnight at which to schedule recurring items
 BacklogConfig.SCHEDULE_RECURRING_ITEMS_HOUR = 3;
@@ -66,3 +69,7 @@ BacklogConfig.NEXT_ITEM_DESCRIPTIONS_PROPERTY_KEY = 'next_item_descriptions';
 // Property for time (in number of milliseconds since the epoch) until when
 // dialogs informing user that items have been set to 'Next' are suspended
 BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME = 'set_to_next_dialogs_suspended_time';
+
+// Key for developer metadata to mark an item as silently schedulable, that is,
+// ready to be automatically and silently added to the calendar
+BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY = 'silently_schedulable';

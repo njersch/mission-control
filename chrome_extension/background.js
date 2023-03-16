@@ -29,6 +29,11 @@ const TAGS = [
     tag: config.TAG_DATE,
     description: 'Set date',
     getPossibleValues: () => Promise.resolve(DAY_NAMES)
+  },
+  {
+    tag: config.TAG_SCHEDULE,
+    description: 'Schedule in calendar',
+    getPossibleValues: () => Promise.resolve(['30', '45', '60', '90', '120'])
   }
 ];
 
@@ -280,6 +285,8 @@ function insertItem(input) {
   const project = consolidatedTags[config.TAG_PROJECT];
   const priority = consolidatedTags[config.TAG_PRIORITY];
   const dateValue = consolidatedTags[config.TAG_DATE];
+  const durationValue = consolidatedTags[config.TAG_SCHEDULE];
+  const duration = /^[0-9]+$/.test(durationValue) ? parseInt(durationValue) : undefined;
 
   // Determine date and status
   let date = undefined;
@@ -294,11 +301,17 @@ function insertItem(input) {
     // and use the beginning of the day at 00:00:00
     const today = new Date();
     date = 25569.0 + daysFromNow + Math.floor((today.getTime() - today.getTimezoneOffset() * 60 * 1000) / (1000 * 60 * 60 * 24));
+  } else {
+
+    // Set status to 'Next' if item should be added to calendar but no date was provided
+    if (duration !== undefined) {
+      status = config.STATUS_NEXT;
+    }
   }
 
   // Insert item into spreadsheet and show notification if successful
   const url = `${SHEETS_API}/${config.SPREADSHEET_ID}:batchUpdate`;
-  const body = JSON.stringify({requests: batchUpdateRequests(title, project, priority, status, date)});
+  const body = JSON.stringify({requests: batchUpdateRequests(title, project, priority, status, date, duration)});
   sendRequest('POST', url, body)
       .then(() => {
         console.log(`Item added: "${title}"`);
@@ -324,9 +337,15 @@ function insertItem(input) {
  * @param {int} priority Priority (optional)
  * @param {string} status Status (optional)
  * @param {number} date Date in serial number format, see https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption (optional)
+ * @param {number} duration
  * @returns {object} Update requests
  */
-function batchUpdateRequests(title, project = undefined, priority = undefined, status = undefined, date = undefined) {
+function batchUpdateRequests(title,
+                             project = undefined,
+                             priority = undefined,
+                             status = undefined,
+                             date = undefined,
+                             duration = undefined) {
   const requests = [];
 
   // Insert new row at the top
@@ -353,6 +372,31 @@ function batchUpdateRequests(title, project = undefined, priority = undefined, s
   // Set status
   if (status) {
     requests.push(writeValueUpdateRequest(config.STATUS_COLUMN, status));
+  }
+
+  // Set duration
+  if (duration !== undefined) {
+    requests.push(writeValueUpdateRequest(config.DURATION_COLUMN, duration, true));
+
+    // Mark item as silently schedulable
+    const metaDataRequest = {
+      createDeveloperMetadata: {
+        developerMetadata: {
+          location: {
+            dimensionRange: {
+              sheetId: config.SHEET_ID,
+              dimension: "ROWS",
+                  startIndex: config.HEADER_ROWS,
+                  endIndex: config.HEADER_ROWS + 1
+                }
+              },
+              visibility: "DOCUMENT",
+              metadataKey: config.SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY,
+              metadataValue: "" // no value needed, key suffices
+            }
+          }
+    };
+    requests.push(metaDataRequest);
   }
 
   // Set date
