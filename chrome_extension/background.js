@@ -39,17 +39,16 @@ const TAGS = [
 
 
 /**
- * Get cached project names
- * @param names Project names
+ * Gets cached project names
  * @returns {PromiseLike<ArrayLike<string>>} Project names
  */
-function getCachedProjectNames(names) {
+function getCachedProjectNames() {
   return chrome.storage.local.get(PROJECT_NAMES_KEY).then((result) => result[PROJECT_NAMES_KEY] || []);
 }
 
 
 /**
- * Set cached project names
+ * Sets cached project names
  * @param {ArrayLike<string>} names Project names
  */
 function setCachedProjectNames(names) {
