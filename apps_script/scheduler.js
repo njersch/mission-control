@@ -69,7 +69,7 @@ class Scheduler {
     const availableSlots = this.getAvailableSlotsForDay(day);
 
     // Determine first slot on given day that hasn't yet begun
-    const isToday = this.getStartOfDay(new Date()).getTime() == this.getStartOfDay(day).getTime();
+    const isToday = this.getStartOfDay(new Date()).getTime() === this.getStartOfDay(day).getTime();
     const firstNotStartedSlot = isToday ? this.getSlotIndex(day, Math.ceil) : 0;
 
     // Find first possible start time
@@ -113,8 +113,8 @@ class Scheduler {
       }
 
       // Ignore unconfirmed meetings
-      const status = event.getMyStatus();;
-      if (status != CalendarApp.GuestStatus.YES && status != CalendarApp.GuestStatus.MAYBE && status != CalendarApp.GuestStatus.OWNER) {
+      const status = event.getMyStatus();
+      if (status !== CalendarApp.GuestStatus.YES && status !== CalendarApp.GuestStatus.MAYBE && status !== CalendarApp.GuestStatus.OWNER) {
         continue;
       }
 
