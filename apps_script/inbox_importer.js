@@ -17,7 +17,7 @@ class InboxImporter {
 		for (const thread of threads) {
 
 			// Skip if thread has multiple messages
-			if (thread.getMessageCount() != 1) {
+			if (thread.getMessageCount() !== 1) {
 				continue;
 			}
 			
@@ -28,7 +28,7 @@ class InboxImporter {
 
 			// Extract subject
 			const subject = thread.getFirstMessageSubject();
-			if (subject == null || subject.length == 0) {
+			if (subject == null || subject.length === 0) {
 				continue;
 			}
 			
