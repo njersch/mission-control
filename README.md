@@ -64,7 +64,7 @@ You enter additional information directly from the Omnibox:
 
 ### Create a new to-do from your other devices
 
-If you're not on your computer, you can add to-dos to your backlog remotely. Simply send an email with the title of your to-do as the subject line to your Gmail address with `+todo` added to your user name, for example max+todo@example.com. It may take a few minutes until new to-dos will be moved from your inbox to your backlog.
+If you're not on your computer, you can add to-dos to your backlog remotely. Simply send an email with the title of your to-do as the subject line to your Gmail address with `+todo` added to your user name, for example max+todo@example.com. On iPhone, iPad and Mac, you may use this [Shortcut](https://www.icloud.com/shortcuts/48fe81eef76d41798784a928cc7fa6e0) to add to-dos with two simple taps.
 
 
 ### Organise, view and snooze your to-dos
