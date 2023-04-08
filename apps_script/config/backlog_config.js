@@ -68,8 +68,11 @@ BacklogConfig.NEXT_ITEM_DESCRIPTIONS_PROPERTY_KEY = 'next_item_descriptions';
 
 // Property for time (in number of milliseconds since the epoch) until when
 // dialogs informing user that items have been set to 'Next' are suspended
-BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME = 'set_to_next_dialogs_suspended_time';
+BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME_PROPERTY_KEY = 'set_to_next_dialogs_suspended_time';
 
 // Key for developer metadata to mark an item as silently schedulable, that is,
 // ready to be automatically and silently added to the calendar
-BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY = 'silently_schedulable';
+BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_METADATA_KEY = 'silently_schedulable';
+
+// Key for developer metadata to associate a scheduled event with a backlog item
+BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY = 'event_tag';

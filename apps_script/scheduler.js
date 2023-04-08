@@ -9,11 +9,13 @@ class Scheduler {
     if (startTime) {
       const endTime = new Date(startTime.getTime() + length*60*1000);
       const event = this.getCalendar().createEvent(title, startTime, endTime);
+      const tag = this.newEventTag();
+      this.setEventTag(event, tag);
       event.setVisibility(visibility);
       event.setColor(SchedulerConfig.COLOR);
-      return true;
+      return tag;
     } else {
-      return false;
+      return null;
     }
   }
 
@@ -127,4 +129,97 @@ class Scheduler {
     return availableSlots;
   }
 
+
+  /**
+   * Retrieves updated events from calendar and returns a map of event tags to events.
+   */
+  static getUpdatedEventsForTags() {
+    const properties = PropertiesService.getDocumentProperties();
+
+    const options = {
+      maxResults: 100,
+      singleEvents: true,
+    };
+
+    // Sync events from last sync token, or from last week if no sync token
+    const syncToken = properties.getProperty(SchedulerConfig.CALENDAR_SYNC_TOKEN_PROPERTY_KEY);
+    if (syncToken) {
+      options.syncToken = syncToken;
+    } else {
+      const minDate = new Date();
+      minDate.setDate(minDate.getDate() - 7);
+      options.timeMin = minDate.toISOString();
+    }
+
+    // Retrieve events, one page at a time
+    const allEvents = [];
+    let eventsBatch;
+    let pageToken = undefined;
+    do {
+      try {
+        options.pageToken = pageToken;
+        eventsBatch = Calendar.Events.list(SchedulerConfig.CALENDAR_ID, options);
+      } catch (e) {
+
+        // Check to see if the sync token was invalidated by the server;
+        // if so, perform a full sync instead
+        if (e.message === 'Sync token is no longer valid, a full sync is required.') {
+          properties.deleteProperty(SchedulerConfig.CALENDAR_SYNC_TOKEN_PROPERTY_KEY);
+          return this.getUpdatedEventsForTags();
+        } else {
+          throw new Error(e.message);
+        }
+      }
+
+      // Collect events
+      if (eventsBatch.items) {
+        allEvents.push(...eventsBatch.items);
+      }
+
+      pageToken = eventsBatch.nextPageToken;
+    } while (pageToken);
+
+    // Store the sync token for the next sync
+    properties.setProperty(SchedulerConfig.CALENDAR_SYNC_TOKEN_PROPERTY_KEY, eventsBatch.nextSyncToken);
+
+    // Create map of event tags to events
+    const eventsForTags = {};
+    for (const event of allEvents) {
+      const tag = this.getEventTag(event);
+      if (tag) {
+        eventsForTags[tag] = event;
+      }
+    }
+    return eventsForTags;
+  }
+
+
+  /**
+   * Returns the tag for an event, or null if the event has no tag.
+   */
+  static getEventTag(event) {
+    const match = event.description && event.description.match(SchedulerConfig.TAG_REGEX);
+    return match ? match[0] : null;
+  }
+
+
+  /**
+   * Sets the tag for an event.
+   */
+  static setEventTag(event, tag) {
+    event.setDescription(tag);
+  }
+
+
+  /**
+   * Returns a new tag for an event.
+   */
+  static newEventTag() {
+    let identifier = '';
+    const base = SchedulerConfig.TAG_BASE;
+    for (let i = 0; i < SchedulerConfig.TAG_LENGTH; i++) {
+      identifier += base.charAt(Math.floor(Math.random() * (base.length - 1)));
+    }
+    return `${SchedulerConfig.TAG_PREFIX}${identifier}`;
+  }
 }

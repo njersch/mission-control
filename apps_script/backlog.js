@@ -102,6 +102,58 @@ class Backlog {
     this.installUniqueTriggerIfNeeded(setWaitingItemsToNext, (builder) => {
       return builder.timeBased().atHour(BacklogConfig.SET_WAITING_ITEMS_TO_NEXT_ITEMS_HOUR).everyDays(1);
     });
+    this.installUniqueTriggerIfNeeded(handleCalendarUpdates, (builder) => {
+      return builder.forUserCalendar(SchedulerConfig.CALENDAR_ID).onEventUpdated();
+    });
+  }
+
+
+  /**
+   * Syncs backlog items with updated events in calendar.
+   */
+  static handleCalendarUpdates() {
+
+    // Retrieve events for tags
+    const eventsForTags = Scheduler.getUpdatedEventsForTags();
+    if (Object.keys(eventsForTags).length === 0) {
+        return;
+    }
+
+    const sheet = this.getBacklogSheet();
+    const allMetadata = this.getRowDeveloperMetadata(sheet, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY);
+
+    for (const [tag, event] of Object.entries(eventsForTags)) {
+
+      // Retrieve metadata for event
+      const metadata = allMetadata.find((metadata) => metadata.getValue() === tag);
+
+      // Skip if no backlog item is associated with event
+      if (!metadata) {
+        console.error(`No backlog item found for event with tag ${tag}.`);
+        continue;
+      }
+
+      const startDate = new Date(event.start.dateTime);
+      const now = new Date();
+
+      // Skip if event is in the past
+      if (startDate < now) {
+        continue;
+      }
+
+      // Set status and waiting date of corresponding backlog item according to event
+      let waitingDate, status;
+      if (this.isSameDate(startDate, now)) {
+        status = BacklogConfig.STATUS_NEXT;
+        waitingDate = null;
+      } else {
+        status = BacklogConfig.STATUS_WAITING;
+        waitingDate = startDate;
+      }
+      const row = metadata.getLocation().getRow().getRowIndex();
+      sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(status);
+      sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setValue(waitingDate);
+    }
   }
 
 
@@ -256,7 +308,7 @@ class Backlog {
     // (don't use event object's 'value' since it may be passed as an integer, not a date)
     const newValue = this.getBacklogSheet().getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
 
-    // Determine earliest possible date (tomorrow) in UTC
+    // Determine the earliest possible date (tomorrow) in UTC
     let date = new Date(Date.now() + BacklogConfig.UTC_TIMEZONE_OFFSET);
     date.setUTCDate(date.getUTCDate() + 1);
     
@@ -351,14 +403,14 @@ class Backlog {
     
     // Check if dialogs have been suspended
     const properties = PropertiesService.getDocumentProperties();
-    const suspendedTime = properties.getProperty(BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME);
+    const suspendedTime = properties.getProperty(BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME_PROPERTY_KEY);
     if (suspendedTime != null && Date.now() < JSON.parse(suspendedTime)) {
       return;
     }
 
     // Suspend dialogs for some time to avoid showing multiple instances
     properties.setProperty(
-        BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME,
+        BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME_PROPERTY_KEY,
         JSON.stringify(Date.now() + 30 * 1000)
     );
 
@@ -650,13 +702,8 @@ class Backlog {
       // If scheduling silently, only schedule items that have been marked as silently schedulable.
       if (!loudly) {
 
-        // Retrieve metadata for relevant key
-        const metadata = sheet
-            .getRange(`${row}:${row}`) // needs to be entire row
-            .getDeveloperMetadata()
-            .find((d) => d.getKey() === BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY);
-
         // Ignore item if it is not marked as silently schedulable
+        const metadata = this.getDeveloperMetadata(sheet, row, BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_METADATA_KEY);
         if (!metadata) {
           return;
         }
@@ -683,8 +730,10 @@ class Backlog {
       }
 
       // Create event
-      if (Scheduler.tryScheduleEvent(title, length, day)) {
+      const tag = Scheduler.tryScheduleEvent(title, length, day);
+      if (tag) {
         sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
+        this.setDeveloperMetadata(sheet, row, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY, tag);
       } else {
         if (loudly) {
           const ui = SpreadsheetApp.getUi();
@@ -712,5 +761,48 @@ class Backlog {
   static showErrorAlert(error) {
     const ui = SpreadsheetApp.getUi();
     ui.alert('Error', `${error}\n\n${error.stack}`, ui.ButtonSet.OK);
+  }
+
+
+  /**
+   * Returns developer metadata for a row.
+   */
+  static getDeveloperMetadata(sheet, row, key) {
+    return sheet
+        .getRange(`${row}:${row}`) // needs to be entire row
+        .getDeveloperMetadata()
+        .find((d) => d.getKey() === key);
+  }
+
+
+  /**
+   * Returns all developer metadata associated with the given key and any row.
+   */
+  static getRowDeveloperMetadata(sheet, key) {
+    return sheet
+        .createDeveloperMetadataFinder()
+        .withKey(key)
+        .withLocationType(SpreadsheetApp.DeveloperMetadataLocationType.ROW)
+        .find();
+  }
+
+
+  /**
+   * Sets developer metadata on a row.
+   */
+  static setDeveloperMetadata(sheet, row, key, value) {
+    sheet
+        .getRange(`${row}:${row}`) // needs to be entire row
+        .addDeveloperMetadata(key, value, SpreadsheetApp.DeveloperMetadataVisibility.DOCUMENT);
+  }
+
+
+  /**
+   * Returns true if two dates correspond to the same day.
+   */
+  static isSameDate(date1, date2) {
+    return date1.getFullYear() === date2.getFullYear()
+        && date1.getMonth() === date2.getMonth()
+        && date1.getDate() === date2.getDate();
   }
 }

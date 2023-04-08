@@ -57,7 +57,16 @@ function scheduleEventsSilently() {
  * a trigger.
  */
 function importFromInbox() {
-	Backlog.importFromInbox();
+  Backlog.importFromInbox();
+}
+
+
+/**
+ * Function to handle calendar updates, globally callable for example from a
+ * trigger.
+ */
+function handleCalendarUpdates() {
+  Backlog.handleCalendarUpdates();
 }
 
 
