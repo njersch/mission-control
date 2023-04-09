@@ -131,9 +131,9 @@ class Scheduler {
 
 
   /**
-   * Retrieves updated events from calendar and returns a map of event tags to events.
+   * Retrieves tags for updated events from calendar.
    */
-  static getUpdatedEventsForTags() {
+  static getUpdatedEventTags() {
     const properties = PropertiesService.getDocumentProperties();
 
     const options = {
@@ -152,7 +152,7 @@ class Scheduler {
     }
 
     // Retrieve events, one page at a time
-    const allEvents = [];
+    const allTags = new Set();
     let eventsBatch;
     let pageToken = undefined;
     do {
@@ -165,15 +165,18 @@ class Scheduler {
         // if so, perform a full sync instead
         if (e.message === 'Sync token is no longer valid, a full sync is required.') {
           properties.deleteProperty(SchedulerConfig.CALENDAR_SYNC_TOKEN_PROPERTY_KEY);
-          return this.getUpdatedEventsForTags();
+          return this.getUpdatedEventTags();
         } else {
           throw new Error(e.message);
         }
       }
 
-      // Collect events
+      // Collect tags from events
       if (eventsBatch.items) {
-        allEvents.push(...eventsBatch.items);
+        const tags = eventsBatch.items
+            .map(event => this.getEventTag(event))
+            .filter(tag => tag);
+        allTags.add(...tags);
       }
 
       pageToken = eventsBatch.nextPageToken;
@@ -182,15 +185,27 @@ class Scheduler {
     // Store the sync token for the next sync
     properties.setProperty(SchedulerConfig.CALENDAR_SYNC_TOKEN_PROPERTY_KEY, eventsBatch.nextSyncToken);
 
-    // Create map of event tags to events
-    const eventsForTags = {};
-    for (const event of allEvents) {
-      const tag = this.getEventTag(event);
-      if (tag) {
-        eventsForTags[tag] = event;
-      }
-    }
-    return eventsForTags;
+    return Array.from(allTags);
+  }
+
+
+  /**
+   * Returns the earliest event with the given tag and start time in the given time range, or null if no such event
+   * exists.
+   */
+  static getEarliestEventWithTag(tag, start, end) {
+
+    // Get all events with the given tag in the given time range
+    let events = this.getCalendar().getEvents(start, end, {search: tag});
+
+    // Filter out events that don't have the given tag
+    events = events.filter(event => this.getEventTag(event) === tag);
+
+    // Sort events by start time
+    events = events.sort((a, b) => a.getStartTime() - b.getStartTime());
+
+    // Return the earliest event
+    return events.length > 0 ? events[0] : null;
   }
 
 
@@ -198,7 +213,11 @@ class Scheduler {
    * Returns the tag for an event, or null if the event has no tag.
    */
   static getEventTag(event) {
-    const match = event.description && event.description.match(SchedulerConfig.TAG_REGEX);
+    // Get the description of the event, starting with the advanced API and falling back to the basic API
+    const description = event.description || event.getDescription();
+
+    // Extract the tag from the description
+    const match = description && description.match(SchedulerConfig.TAG_REGEX);
     return match ? match[0] : null;
   }
 

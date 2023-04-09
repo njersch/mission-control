@@ -114,44 +114,52 @@ class Backlog {
    */
   static handleCalendarUpdates() {
 
-    // Retrieve events for tags
-    const eventsForTags = Scheduler.getUpdatedEventsForTags();
-    if (Object.keys(eventsForTags).length === 0) {
+    // Retrieve updated tags
+    const tags = Scheduler.getUpdatedEventTags();
+    if (tags.length === 0) {
         return;
     }
 
     const sheet = this.getBacklogSheet();
     const allMetadata = this.getRowDeveloperMetadata(sheet, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY);
 
-    for (const [tag, event] of Object.entries(eventsForTags)) {
+    for (const tag of tags) {
 
-      // Retrieve metadata for event
-      const metadata = allMetadata.find((metadata) => metadata.getValue() === tag);
+      // Retrieve metadata for tag
+      const metadataForTag = allMetadata.find((metadata) => metadata.getValue() === tag);
 
       // Skip if no backlog item is associated with event
-      if (!metadata) {
+      if (!metadataForTag) {
         console.error(`No backlog item found for event with tag ${tag}.`);
         continue;
       }
 
-      const startDate = new Date(event.start.dateTime);
-      const now = new Date();
+      // Retrieve all metadata for row, including metadata corresponding to other tags.
+      // There may be multiple tags if a backlog item has been scheduled multiple times.
+      const row = metadataForTag.getLocation().getRow().getRowIndex();
+      const metadataForRow = allMetadata.filter((metadata) => metadata.getLocation().getRow().getRowIndex() === row);
 
-      // Skip if event is in the past
-      if (startDate < now) {
-        continue;
-      }
+      // Retrieve the earliest event for row, including events from now until 30 days in the future
+      const now = new Date();
+      const end = new Date(now.getTime());
+      end.setDate(end.getDate() + 30);
+      const earliestEvent = metadataForRow
+          .map((metadata) => Scheduler.getEarliestEventWithTag(metadata.getValue(), now, end))
+          .filter((event) => event !== null)
+          .reduce((earliest, current) => {
+            return earliest && earliest.getStartTime() < current.getStartTime() ? earliest : current
+          });
 
       // Set status and waiting date of corresponding backlog item according to event
+      const earliestStartDate = earliestEvent.getStartTime();
       let waitingDate, status;
-      if (this.isSameDate(startDate, now)) {
+      if (this.isSameDate(earliestStartDate, now)) {
         status = BacklogConfig.STATUS_NEXT;
         waitingDate = null;
       } else {
         status = BacklogConfig.STATUS_WAITING;
-        waitingDate = startDate;
+        waitingDate = earliestStartDate;
       }
-      const row = metadata.getLocation().getRow().getRowIndex();
       sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(status);
       sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setValue(waitingDate);
     }
