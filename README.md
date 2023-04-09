@@ -109,7 +109,7 @@ To integrate with other services, for example to remind you to read the emails y
 
 ### Block time on your calendar
 
-If you want to organise your day and block time on your calendar for your to-dos, you can have Mission Control add calendar events for your to-dos. Type in the number of minutes you'd like to block for each to-do into column A and click on the 'Schedule' icon:
+If you want to organise your day and block time on your calendar for your to-dos, you can have Mission Control add calendar events for your to-dos. Type in the number of minutes you'd like to block for each to-do into column I and click on the 'Schedule' icon:
 
 ![Schedule to-dos](./assets/schedule.png)
 
