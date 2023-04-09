@@ -56,14 +56,15 @@ class Backlog {
       
       // Determine action for column
       const column = range.getColumn();
-      if (column === BacklogConfig.COLUMN_PROJECT) {
+      if (column === BacklogConfig.COLUMN_COMPLETED) {
+        this.deleteCompletedItems();
+      } else if (column === BacklogConfig.COLUMN_PROJECT) {
         this.setDefaultProjectIfNeeded(sheet, row);
       } else if (column === BacklogConfig.COLUMN_WAITING) {
         this.setWaiting(sheet, row);
         this.convertShortcutToDateIfNeeded(sheet, row);
       } else if (column === BacklogConfig.COLUMN_STATUS) {
         this.clearWaitingDateIfNeeded(sheet, row, e.oldValue, e.value);
-        this.deleteRowIfNeeded(sheet, row, e.value);
       }
 
     } catch (error) {
@@ -77,7 +78,7 @@ class Backlog {
   /**
    * Function that is to be called from trigger function onSelectionChange(e).
    */
-  static handleOnSelectionChange(e) {
+  static handleOnSelectionChange(_) {
     try {
       this.showSetToNextDialogIfNeeded();
     } catch (error) {
@@ -211,22 +212,26 @@ class Backlog {
    * Inserts new item at the top.
    */
   static insertBacklogItem(item) {
+    
+    // Run code with lock to prevent interference with operations that alter the order of rows
+    this.doWithLock(() => {
 
-    // Insert row and format
-    const sheet = this.getBacklogSheet();
-    const row = BacklogConfig.HEADER_ROWS + 1;
-    sheet.insertRowBefore(row);
-    sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
-    sheet.getRange(row, BacklogConfig.COLUMN_TITLE).activate();
+      // Insert row and format
+      const sheet = this.getBacklogSheet();
+      const row = BacklogConfig.HEADER_ROWS + 1;
+      sheet.insertRowBefore(row);
+      sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
+      sheet.getRange(row, BacklogConfig.COLUMN_TITLE).activate();
 
-    // Populate info, if provided
-    if (item != null) {
-      sheet.getRange(row, BacklogConfig.COLUMN_TITLE).setValue(item.title);
-      sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).setValue(item.project);
-      sheet.getRange(row, BacklogConfig.COLUMN_PRIORITY).setValue(item.priority);
-      sheet.getRange(row, BacklogConfig.COLUMN_NOTES).setValue(item.notes);
-      sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(BacklogConfig.STATUS_NEXT);
-    }
+      // Populate info, if provided
+      if (item != null) {
+        sheet.getRange(row, BacklogConfig.COLUMN_TITLE).setValue(item.title);
+        sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).setValue(item.project);
+        sheet.getRange(row, BacklogConfig.COLUMN_PRIORITY).setValue(item.priority);
+        sheet.getRange(row, BacklogConfig.COLUMN_NOTES).setValue(item.notes);
+        sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(BacklogConfig.STATUS_NEXT);
+      }
+    });
   }
 
 
@@ -239,6 +244,25 @@ class Backlog {
     if (project === BacklogConfig.DEFAULT_PROJECT_SHORTCUT) {
       range.setValue(BacklogConfig.DEFAULT_PROJECT);
     } 
+  }
+
+
+  /**
+   * Deletes completed items.
+   */
+  static deleteCompletedItems() {
+
+    // Run code with lock to prevent interference with operations that alter the order of rows
+    this.doWithLock(() => {
+      this
+        .getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_COMPLETED)
+        .reverse()
+        .forEach(([row, value]) => {
+          if (value === true) {
+            this.getBacklogSheet().deleteRow(row);
+          }
+        });
+    });
   }
 
 
@@ -256,7 +280,7 @@ class Backlog {
     const updatedItemDescriptions = [];
 
     // Iterate through all waiting dates
-    this.iterateNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING, (row, waitingDate) => {
+    for (const [row, waitingDate] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING)) {
 
       // Mark as 'Next' if waiting date is in the past
       if (waitingDate instanceof Date && waitingDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET <= endOfDay.getTime()) {
@@ -270,7 +294,7 @@ class Backlog {
           updatedItemDescriptions.push(`${title} (${project})`);
         }
       }
-    });
+    }
 
     // Queue descriptions for later display
     if (updatedItemDescriptions.length > 0) {
@@ -336,16 +360,6 @@ class Backlog {
     const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
     range.setValue(date);
     range.setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
-  }
-
-
-  /**
-   * Deletes row if item is marked as completed.
-   */
-  static deleteRowIfNeeded(sheet, row, newValue) {
-    if (newValue === BacklogConfig.STATUS_DONE) {
-      sheet.deleteRow(row);
-    }
   }
 
 
@@ -429,20 +443,20 @@ class Backlog {
 
 
   /**
-   * Invokes the given function for each backlog item with the
-   * corresponding row number.
+   * Returns all non-empty rows in the given column, with their row numbers and values.
    */
-  static iterateNonEmptyBacklogRowsInColumn(column, fn) {
+  static getNonEmptyBacklogRowsInColumn(column) {
     const sheet = this.getBacklogSheet();
     const lastRow = sheet.getLastRow();
     const range = sheet.getRange(BacklogConfig.HEADER_ROWS + 1, column, Math.min(lastRow, 1000) - BacklogConfig.HEADER_ROWS);
     const values = range.getValues();
-    for (const [i, rowValues] of values.entries()) {
-      const value = rowValues[0];
-      if (value !== '') {
-        fn(BacklogConfig.HEADER_ROWS + i + 1, value);
-      }
-    }
+    return values
+        .map((values, i) => {
+          return [BacklogConfig.HEADER_ROWS + i + 1, values[0]];
+        })
+        .filter(([_, value]) => {
+          return value !== '';
+        });
   }
 
 
@@ -686,7 +700,7 @@ class Backlog {
 
     const sheet = this.getBacklogSheet();
 
-    this.iterateNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_SCHEDULED_TIME, (row, value) => {
+    for (const [row, value] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_SCHEDULED_TIME)) {
 
       // Parse and validate input
       const regex = /^(?<length>[0-9]+)(?::\s+(?<title>\S.*))?$/;
@@ -740,7 +754,7 @@ class Backlog {
           ui.alert('You\'re out of time', `Could not schedule event "${title}" before the end of the day`, ui.ButtonSet.OK);
         }
       }
-    });
+    }
   }
 
 
@@ -804,5 +818,19 @@ class Backlog {
     return date1.getFullYear() === date2.getFullYear()
         && date1.getMonth() === date2.getMonth()
         && date1.getDate() === date2.getDate();
+  }
+
+
+  /**
+   * Performs the given function with a lock.
+   */
+  static doWithLock(f) {
+    const lock = LockService.getDocumentLock();
+    try {
+      lock.waitLock(10*1000);
+      f();
+    } finally {
+      lock.releaseLock();
+    }
   }
 }

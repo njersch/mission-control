@@ -7,18 +7,18 @@ BacklogConfig.SHEET_ID = 0;
 BacklogConfig.HEADER_ROWS = 1;
 
 // Column indices (one-based)
+BacklogConfig.COLUMN_COMPLETED = 1;
 BacklogConfig.COLUMN_TITLE = 3;
 BacklogConfig.COLUMN_PROJECT = 5;
 BacklogConfig.COLUMN_PRIORITY = 6;
 BacklogConfig.COLUMN_STATUS = 7;
 BacklogConfig.COLUMN_WAITING = 8;
+BacklogConfig.COLUMN_SCHEDULED_TIME = 9;
 BacklogConfig.COLUMN_NOTES = 10;
-BacklogConfig.COLUMN_SCHEDULED_TIME = 1;
 
 // Value constants for status column
 BacklogConfig.STATUS_WAITING = 'Waiting';
 BacklogConfig.STATUS_NEXT = 'Next';
-BacklogConfig.STATUS_DONE = 'Done';
 BacklogConfig.STATUS_LATER = 'Later';
 
 // Shortcut for entering default project

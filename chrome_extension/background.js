@@ -375,7 +375,7 @@ function batchUpdateRequests(title,
 
   // Set duration
   if (duration !== undefined) {
-    requests.push(writeValueUpdateRequest(config.DURATION_COLUMN, duration, true));
+    requests.push(writeValueUpdateRequest(config.SCHEDULED_TIME_COLUMN, duration, true));
 
     // Mark item as silently schedulable
     const metaDataRequest = {

@@ -4,12 +4,12 @@ export const SHEET_ID = 0;
 export const HEADER_ROWS = 1;
 
 // Column indices
-export const DURATION_COLUMN = 1; // one-based
 export const TITLE_COLUMN = 3; // one-based
 export const PROJECT_COLUMN = 5; // one-based
 export const PRIORITY_COLUMN = 6; // one-based
 export const STATUS_COLUMN = 7; // one-based
 export const DATE_COLUMN = 8; // one-based
+export const SCHEDULED_TIME_COLUMN = 9; // one-based
 
 // Values for status column
 export const STATUS_WAITING = 'Waiting';
