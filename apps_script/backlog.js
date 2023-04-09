@@ -143,12 +143,16 @@ class Backlog {
       const now = new Date();
       const end = new Date(now.getTime());
       end.setDate(end.getDate() + 30);
-      const earliestEvent = metadataForRow
+      const allEvents = metadataForRow
           .map((metadata) => Scheduler.getEarliestEventWithTag(metadata.getValue(), now, end))
           .filter((event) => event !== null)
-          .reduce((earliest, current) => {
-            return earliest && earliest.getStartTime() < current.getStartTime() ? earliest : current
-          });
+          .sort((a, b) => a.getStartTime() - b.getStartTime());
+      const earliestEvent = allEvents.length > 0 ? allEvents[0] : null;
+
+      if (!earliestEvent) {
+        console.error(`No event found for tag ${tag}.`);
+        continue;
+      }
 
       // Set status and waiting date of corresponding backlog item according to event
       const earliestStartDate = earliestEvent.getStartTime();
