@@ -4,7 +4,7 @@ A simple and customisable backlog system for Google Workspace users that helps y
 
 - **Easy entry from anywhere:** Add to-dos from any Chrome tab and any device
 - **Stay focused:** Snooze to-dos, assign priorities and automatically block time on your calendar, so you can focus on what's important to you now
-- **Speed up your task management:** Add and change information fast and efficiently – that's what spreadsheets are good at!
+- **Speed up your task management:** Add and change information fast and efficiently – spreadsheets are great for that!
 - **All your to-dos in one place:** Pull to-dos from other Workspace services like Gmail, so you can manage all your work in one place
 - **Purely Workspace-based:** No need for sharing confidential data or buying subscriptions beyond Google Workspace
 
@@ -54,7 +54,7 @@ To create a new to-do from anywhere in Chrome, type `mc` into the Omnibox and hi
 
 ![Create to-dos from the Omnibox](./assets/create_from_omnibox.png)
 
-You enter additional information directly from the Omnibox:
+You can enter additional information directly from the Omnibox:
 
 - Assign to-do to a **project** by entering `#project:` followed by a project name. If a project name contains whitespace, make sure to wrap everything in parentheses.
 - Set a **priority** by entering `#prio:`, followed by the desired priority.
