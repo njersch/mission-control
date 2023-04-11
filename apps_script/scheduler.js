@@ -141,14 +141,17 @@ class Scheduler {
       singleEvents: true,
     };
 
-    // Sync events from last sync token, or from last week if no sync token
+    // Sync events from last sync token, or from now to 7 days from now
+    // for the initial sync
     const syncToken = properties.getProperty(SchedulerConfig.CALENDAR_SYNC_TOKEN_PROPERTY_KEY);
     if (syncToken) {
       options.syncToken = syncToken;
     } else {
       const minDate = new Date();
-      minDate.setDate(minDate.getDate() - 7);
+      const maxDate = new Date();
+      maxDate.setDate(maxDate.getDate() + 7);
       options.timeMin = minDate.toISOString();
+      options.timeMax = maxDate.toISOString();
     }
 
     // Retrieve events, one page at a time
