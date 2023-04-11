@@ -176,10 +176,10 @@ class Scheduler {
 
       // Collect tags from events
       if (eventsBatch.items) {
-        const tags = eventsBatch.items
+        eventsBatch.items
             .map(event => this.getEventTag(event))
-            .filter(tag => tag);
-        allTags.add(...tags);
+            .filter(tag => tag)
+            .forEach(tag => allTags.add(tag));
       }
 
       pageToken = eventsBatch.nextPageToken;
