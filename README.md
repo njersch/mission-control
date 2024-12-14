@@ -2,59 +2,58 @@
 
 A simple and customisable backlog system for Google Workspace users that helps you with ["Getting Things Done"](https://en.wikipedia.org/wiki/Getting_Things_Done).
 
-- **Easy entry from anywhere:** Add to-dos from any Chrome tab and any device
-- **Stay focused:** Snooze to-dos, assign priorities and automatically block time on your calendar, so you can focus on what's important to you now
-- **Speed up your task management:** Add and change information fast and efficiently – spreadsheets are great for that!
-- **All your to-dos in one place:** Pull to-dos from other Workspace services like Gmail, so you can manage all your work in one place
-- **Purely Workspace-based:** No need for sharing confidential data or buying subscriptions beyond Google Workspace
-
+- **Quickly add to-dos from anywhere:** Add to-dos from anywhere in Chrome via the address bar, or per email from other devices
+- **Stay focused and manage your time:** Snooze to-dos, assign priorities and automatically block time on your calendar
+- **Manage your to-dos efficiently:** View and edit your to-dos fast and easily in a Google Sheet
+- **Keep everything in one place:** Use Apps Script to pull to-dos from other Workspace services like Gmail, so you can manage all your work in one place
+- **Purely Workspace-based:** Workspace is all you need. No need to buy additional subscriptions or save confidential data outside of Workspace.
 
 ## Getting Started
 
-To get started, you will have to copy a few files and configure a few variables. Don't worry though, it should not take more than just a few minutes.
+To get started, copy and configure the files below. Don't worry, that shouldn't take more than a few minutes.
 
 1. Make a copy of [this spreadsheet](https://docs.google.com/spreadsheets/d/1T5oizbxcr-_fVzoKcx92o2PO_DikLpdj8o8_cv7lvPc/edit?usp=sharing&resourcekey=0-aHUjSv69rN8c3A76sPSxDA) with the Google Account that you'd like to use.
 2. Open the spreadsheet and go to `Extensions` > `Apps Script`.
-3. Copy each `.js` file from the `apps_script` folder in this repository, including the `config` folder, into your new Apps Script project as a `.gs` file. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to create an Apps Script project and push the files to your project.
-4. Go to `Extensions` > `Apps Script` and select `Project Settings`. Make sure your timezone is selected in your project settings.
-5. Select `Editor`. Then, next to `Services`, click `+` and add the [`Advanced Calendar Service`](https://developers.google.com/apps-script/advanced/calendar).
-6. Reload the spreadsheet, open the `Custom` menu at the top and click `Install triggers if needed`. This will install Apps Script triggers to keep your backlog up to date in the background.
+2. Copy each `.js` file from the `apps_script` folder in this repository, including the `config` folder, into your new Apps Script project as a `.gs` file. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to create an Apps Script project and push the files to your project.
+2. Go to `Extensions` > `Apps Script` and select `Project Settings`. Make sure your timezone is selected in your project settings.
+2. Select `Editor`. Then, next to `Services`, click `+` and add the [`Advanced Calendar Service`](https://developers.google.com/apps-script/advanced/calendar).
+2. Reload the spreadsheet, open the `Custom` menu at the top and click `Install triggers if needed`. This will install Apps Script triggers to keep your backlog up to date in the background.
 
-Next, configure a few required Apps Script variables:
+Next, configure the required Apps Script variables:
 
 1. Open `config/scheduler_config.gs` and set the value of `SchedulerConfig.CALENDAR_ID` to the ID of your Google calendar. This will allow you to easily [block time on your calendar](#block-time-on-your-calendar) for your to-dos. You can find the ID of your calendar in your calendar settings. If you want to use your main calendar, simply enter the email address of your Workspace account, for example max@example.com.
 2. Open `config/inbox_importer_config.gs` and set the value of `InboxImporterConfig.EMAIL_ADDRESS` to the email address of your Workspace account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
 
-To be able to quickly open your to-do list and add items from Chrome's Omnibox, also install the 'Mission Control' Chrome extension:
+To quickly open your to-do list and add items from Chrome's address bar, also install the 'Mission Control' Chrome extension:
 
 1. Download the `chrome_extension` folder to your computer. If you like, you can rename the folder to something else.
 2. Open `background.js`.
-3. Replace the value of `SPREADSHEET_ID` with the ID of the spreadsheet you created above. You can find the ID in the URL of your spreadsheet: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
-4. Open `manifest.json`.
-5. Replace the value of `"client_id"` under `"oauth2"` with a valid [Google Cloud Platform OAuth client ID](https://developer.chrome.com/docs/extensions/mv3/tut_oauth/#oauth_client) that grants you access to the Google Sheets API (read and write access).
-6. Open Chrome and go to `chrome://extensions`.
-7. Turn on "Developer mode" in the top right corner.
-8. Click "Load unpacked" and select the `chrome_extension` folder you downloaded earlier.
+2. Replace the value of `SPREADSHEET_ID` with the ID of the spreadsheet you created above. You can find the ID in the URL of your spreadsheet: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
+2. Open `manifest.json`.
+2. Replace the value of `"client_id"` under `"oauth2"` with a valid [Google Cloud Platform OAuth client ID](https://developer.chrome.com/docs/extensions/mv3/tut_oauth/#oauth_client) that grants you access to the Google Sheets API (read and write access).
+2. Open Chrome and go to `chrome://extensions`.
+2. Turn on "Developer mode" in the top right corner.
+2. Click "Load unpacked" and select the `chrome_extension` folder you downloaded earlier.
 
 
 ## Using Mission Control
 
 ### Open your backlog from anywhere in Chrome
 
-To quickly access your backlog while in Chrome, type `mc` (for **M**ission **C**ontrol) into the Omnibox and hit `SPACE` or `TAB`. Hit `ENTER` and your backlog will open in a new pinned tab. If your backlog is already open, Chrome will simply navigate to the existing tab.
+To quickly access your backlog while in Chrome, type `m` (for **M**ission Control) into the address bar and hit `SPACE` or `TAB`. Hit `ENTER` and your backlog will open in a new pinned tab. If your backlog is already open, Chrome will simply navigate to the existing tab.
 
 ![Open backlog from anywhere](./assets/open_backlog.png)
 
-Similarly, you can quickly navigate to Gmail, Meet and Calendar by typing `mc`, `SPACE` and then `g` (for Gmail), `m` (for Meet), or `c` (for Calendar). It's easy to add your own shortcuts to `chrome_extension/background.js`.
+Similarly, you can quickly navigate to Gmail, Meet and Calendar by typing `m`, `SPACE` and then `g` (for Gmail), `m` (for Meet), or `c` (for Calendar). It's easy to add your own shortcuts to `chrome_extension/background.js`.
 
 
 ### Create a new to-do from anywhere in Chrome
 
-To create a new to-do from anywhere in Chrome, type `mc` into the Omnibox and hit `SPACE` or `TAB`. Type in a title for your new to-do and hit `ENTER`. Chrome will add a new to-do to the top of your backlog.
+To create a new to-do from anywhere in Chrome, type `m` into the address bar and hit `SPACE` or `TAB`. Type in a title for your new to-do and hit `ENTER`. Chrome will add a new to-do to the top of your backlog.
 
-![Create to-dos from the Omnibox](./assets/create_from_omnibox.png)
+![Create to-dos from the address var](./assets/create_from_omnibox.png)
 
-You can enter additional information directly from the Omnibox:
+You can enter additional information directly from the address var:
 
 - Assign to-do to a **project** by entering `#project:` followed by a project name. If a project name contains whitespace, make sure to wrap everything in parentheses.
 - Set a **priority** by entering `#prio:`, followed by the desired priority.
@@ -64,7 +63,7 @@ You can enter additional information directly from the Omnibox:
 
 ### Create a new to-do from your other devices
 
-If you're not on your computer, you can add to-dos to your backlog remotely. Simply send an email with the title of your to-do as the subject line to your Gmail address with `+todo` added to your user name, for example max+todo@example.com. On iPhone, iPad and Mac, you may use this [Shortcut](https://www.icloud.com/shortcuts/48fe81eef76d41798784a928cc7fa6e0) to add to-dos with two simple taps.
+If you're not on your computer, you can add to-dos to your backlog remotely. Simply send an email with the title of your to-do as the subject line to your Gmail address with `+todo` added to your user name, for example max+todo@example.com. On iPhone, iPad and Mac, you can use this [Shortcut](https://www.icloud.com/shortcuts/48fe81eef76d41798784a928cc7fa6e0) to add to-dos with two simple taps.
 
 
 ### Organise, view and snooze your to-dos
@@ -81,9 +80,9 @@ There are three views you should commonly use to browse and manage your to-dos:
 
 !['Waiting' view](./assets/waiting_view.png)
 
-**"Waiting"** is your **monitoring view** and contains only items with a `Waiting` status. You should move two types of items into this view: 1) Items that you need to keep an eye on but that are not yet actionable – for example when you're waiting for someone's response. 2) Items that you don't have the time or energy to work on right now but you know roughly when you want to take another look at them.
+**"Waiting"** is your **view into the future** and contains only items with a `Waiting` status. You should move two types of items into this view: 1) Items that you need to keep an eye on but that are not yet actionable – for example when you're waiting for someone's response. 2) Items that you don't have the time or energy to deal with right now but you know roughly when it's time to take another look.
 
-To set an item's status to `Waiting`, enter a date in the `Wait until` column. The item will be **snoozed** and scheduled to reappear in your `Next` view on the given date. This helps you make sure you don't drop the ball on important to-dos while keeping your focus view ... well ... focused on just the things you can and want to work on at the moment.
+To set an item's status to `Waiting`, enter a date in the `Wait until` column. The item will be **snoozed** and automatically show up again in your `Next` view on the chosen date. This helps you make sure you don't drop the ball something important while keeping your focus view ... well ... focused on just the things you really need to work on right now.
  
 There are a few easy ways to snooze an item:
 
