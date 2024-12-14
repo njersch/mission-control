@@ -14,7 +14,7 @@ BacklogConfig.COLUMN_PRIORITY = 6;
 BacklogConfig.COLUMN_STATUS = 7;
 BacklogConfig.COLUMN_WAITING = 8;
 BacklogConfig.COLUMN_SCHEDULED_TIME = 9;
-BacklogConfig.COLUMN_NOTES = 10;
+BacklogConfig.COLUMN_NOTES = 11;
 
 // Value constants for status column
 BacklogConfig.STATUS_WAITING = 'Waiting';
