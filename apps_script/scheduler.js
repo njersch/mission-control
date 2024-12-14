@@ -4,18 +4,17 @@ class Scheduler {
    * Attempts to schedule an event with given title and length in minutes
    * in free calendar slots today.
    */
-  static tryScheduleEvent(title, length, day, visibility=CalendarApp.Visibility.PRIVATE) {
+  static tryScheduleEvent(tag, title, length, day, visibility=CalendarApp.Visibility.PRIVATE) {
     const startTime = this.findStartTimeForEvent(day, length);
     if (startTime) {
       const endTime = new Date(startTime.getTime() + length*60*1000);
       const event = this.getCalendar().createEvent(title, startTime, endTime);
-      const tag = this.newEventTag();
       this.setEventTag(event, tag);
       event.setVisibility(visibility);
       event.setColor(SchedulerConfig.COLOR);
-      return tag;
+      return true;
     } else {
-      return null;
+      return false;
     }
   }
 

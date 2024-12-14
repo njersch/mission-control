@@ -121,22 +121,21 @@ class Backlog {
     }
 
     const sheet = this.getBacklogSheet();
-    const allMetadata = this.getRowDeveloperMetadata(sheet, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY);
 
     for (const tag of tags) {
 
-      // Retrieve metadata for tag
-      const metadataForTag = allMetadata.find((metadata) => metadata.getValue() === tag);
+      // Retrieve row for tag
+      const row = this.findRowByEventTag(tag);
 
       // Skip if no backlog item is associated with event
-      if (!metadataForTag) {
+      if (row === null) {
         console.error(`No backlog item found for event with tag ${tag}.`);
         continue;
       }
 
       // Retrieve all metadata for row, including metadata corresponding to other tags.
       // There may be multiple tags if a backlog item has been scheduled multiple times.
-      const row = metadataForTag.getLocation().getRow().getRowIndex();
+      const allMetadata = this.getRowDeveloperMetadata(sheet, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY);
       const metadataForRow = allMetadata.filter((metadata) => metadata.getLocation().getRow().getRowIndex() === row);
 
       // Retrieve the earliest event for row, including events from now until 30 days in the future
@@ -706,66 +705,85 @@ class Backlog {
 
 
   /**
-   * Parses input in scheduling column and creates an event.
+   * Parses input in scheduling column and creates an event for each input value.
    */
   static scheduleEvents(loudly) {
 
     const sheet = this.getBacklogSheet();
 
+    // Array with all events to schedule
+    const eventsToSchedule = [];
+    const titleKey = 'title';
+    const lengthKey = 'length';
+    const dateKey = 'date';
+    const tagKey = 'tag';
+    const silentMetadataKey = 'silentMetadata';
+
+    // Collect events to schedule but don't schedule them yet. Instead, we first process
+    // all rows and tag them. This is done, so we can retrieve and update the correct row later,
+    // even if the row has been moved in the meantime.
     for (const [row, value] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_SCHEDULED_TIME)) {
 
-      // Parse and validate input
-      const regex = /^(?<length>[0-9]+)(?::\s+(?<title>\S.*))?$/;
-      const match = value.toString().match(regex);
-      if (match == null) {
+      const event = {};
+
+      // Determine and validate length.
+      const length = Number.parseInt(value.toString());
+      if (Number.isNaN(length)) {
         if (loudly) {
           const ui = SpreadsheetApp.getUi();
           ui.alert('Invalid input', 'Enter time in minutes (for example "30")', ui.ButtonSet.OK);
         }
         return;
       }
+      event[lengthKey] = length;
 
+      // Retrieve metadata for silent scheduling.
+      const silentMetadata = this.getDeveloperMetadata(sheet, row, BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_METADATA_KEY);
+      event[silentMetadataKey] = silentMetadata;
+      
       // If scheduling silently, only schedule items that have been marked as silently schedulable.
-      if (!loudly) {
-
-        // Ignore item if it is not marked as silently schedulable
-        const metadata = this.getDeveloperMetadata(sheet, row, BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_METADATA_KEY);
-        if (!metadata) {
-          return;
-        }
-
-        // Mark item as processed by removing metadata
-        metadata.remove();
+      if (!loudly && !silentMetadata) {
+          continue;
       }
 
-      const length = Number.parseInt(match.groups.length);
-      let title = match.groups.title;
+      // Determine day on which to schedule event.
+      event[dateKey] = sheet.getRange(row, BacklogConfig.COLUMN_WAITING).getValue() || new Date();
 
-      // Determine day on which to schedule event
-      const day = sheet.getRange(row, BacklogConfig.COLUMN_WAITING).getValue() || new Date();
-
-      // If no title is provided, extract title from selected row
-      if (title == null) {
-        title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();  
-      }
-
-      // Add project to title
+      // Determine title.
+      let title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
       const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
       if (project) {
         title = `${title} (${project})`;
       }
+      event[titleKey] = title;
 
-      // Create event
-      const tag = Scheduler.tryScheduleEvent(title, length, day);
-      if (tag) {
-        sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
-        this.setDeveloperMetadata(sheet, row, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY, tag);
-      } else {
+      // Create tag and immediately set it on row.
+      const tag = Scheduler.newEventTag();
+      this.setDeveloperMetadata(sheet, row, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY, tag);
+      event[tagKey] = tag;
+
+      // Add event to list.
+      eventsToSchedule.push(event);
+    }
+
+    // Schedule events.
+    for (const {title, length, date, tag, silentMetadata} of eventsToSchedule) {
+      
+      const success = Scheduler.tryScheduleEvent(tag, title, length, date);
+
+      if (!success) {
         if (loudly) {
           const ui = SpreadsheetApp.getUi();
-          ui.alert('You\'re out of time', `Could not schedule event "${title}" before the end of the day`, ui.ButtonSet.OK);
+          ui.alert('Error', `Could not schedule event for item "${title}".`, ui.ButtonSet.OK);
         }
+        continue;
       }
+
+      // Mark event as scheduled. The row is retrieved by tag to avoid interference from any row
+      // changes that may have occurred in the meantime.
+      const row = this.findRowByEventTag(tag);
+      sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
+      silentMetadata?.remove();
     }
   }
 
@@ -810,6 +828,17 @@ class Backlog {
         .withKey(key)
         .withLocationType(SpreadsheetApp.DeveloperMetadataLocationType.ROW)
         .find();
+  }
+
+
+  /**
+   * Finds the row for a given event tag.
+   */
+  static findRowByEventTag(tag) {
+    const sheet = this.getBacklogSheet();
+    const metadata = this.getRowDeveloperMetadata(sheet, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY);
+    const metadataForTag = metadata.find((metadata) => metadata.getValue() === tag);
+    return metadataForTag ? metadataForTag.getLocation().getRow().getRowIndex() : null;
   }
 
 
