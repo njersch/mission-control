@@ -165,7 +165,7 @@ class Scheduler {
 
         // Check to see if the sync token was invalidated by the server;
         // if so, perform a full sync instead
-        if (e.message === 'Sync token is no longer valid, a full sync is required.') {
+        if (e.message.endsWith('Sync token is no longer valid, a full sync is required.')) {
           properties.deleteProperty(SchedulerConfig.CALENDAR_SYNC_TOKEN_PROPERTY_KEY);
           return this.getUpdatedEventTags();
         } else {
