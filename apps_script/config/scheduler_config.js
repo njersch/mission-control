@@ -6,7 +6,7 @@ SchedulerConfig.CALENDAR_ID = '';
 SchedulerConfig.UTC_TIMEZONE_OFFSET = BacklogConfig.UTC_TIMEZONE_OFFSET; // in ms
 
 // Length of possible slots for scheduled events
-SchedulerConfig.SLOT_LENGTH = 5; // in minutes
+SchedulerConfig.SLOT_LENGTH = 15; // in minutes
 
 // Earliest time at which scheduled events may begin
 SchedulerConfig.DAY_START = 9; // in hours since midnight
