@@ -45,7 +45,7 @@ To quickly access your backlog while in Chrome, type `m` (for **M**ission Contro
 
 ![Open backlog from anywhere](./assets/open_backlog.png)
 
-Similarly, you can quickly navigate to Gmail, Meet and Calendar by typing `m`, `SPACE` and then `g` (for Gmail), `m` (for Meet), or `c` (for Calendar). It's easy to add your own shortcuts to `chrome_extension/background.js`.
+Similarly, you can quickly navigate to Gmail, Meet and Calendar by typing `m`, `SPACE` and then `i` (for your Gmail inbox), `m` (for Meet), or `c` (for Calendar). It's easy to add your own shortcuts to `chrome_extension/background.js`.
 
 
 ### Create a new to-do from anywhere in Chrome
