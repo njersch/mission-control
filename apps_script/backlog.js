@@ -62,7 +62,7 @@ class Backlog {
         this.setDefaultProjectIfNeeded(sheet, row);
       } else if (column === BacklogConfig.COLUMN_WAITING) {
         this.setWaiting(sheet, row);
-        this.convertShortcutToDateIfNeeded(sheet, row);
+        this.convertWaitingDateIfNeeded(sheet, row);
       } else if (column === BacklogConfig.COLUMN_STATUS) {
         this.clearWaitingDateIfNeeded(sheet, row, e.oldValue, e.value);
       }
@@ -335,42 +335,55 @@ class Backlog {
 
 
   /**
-   * Converts a shortcut date (e.g. "Mon" or "10") to the next corresponding date.
+   * Converts a value entered in the waiting column (e.g. "Mon" or "10") if needed.
    */
-  static convertShortcutToDateIfNeeded(sheet, row) {
+  static convertWaitingDateIfNeeded(sheet, row) {
     
-    // Obtain new value
-    // (don't use event object's 'value' since it may be passed as an integer, not a date)
-    const newValue = this.getBacklogSheet().getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
+    // Obtain original value. Don't use event object's 'value' since it may be passed as an integer,
+    // not a date.
+    const originalValue = this.getBacklogSheet().getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
 
-    // Determine the earliest possible date (tomorrow) in UTC
-    let date = new Date(Date.now() + BacklogConfig.UTC_TIMEZONE_OFFSET);
-    date.setUTCDate(date.getUTCDate() + 1);
+    // Determine the earliest possible date (tomorrow) in UTC.
+    const earliestPossibleDate = new Date(Date.now() + BacklogConfig.UTC_TIMEZONE_OFFSET);
+    earliestPossibleDate.setUTCDate(earliestPossibleDate.getUTCDate() + 1);
+
+    // Converted date in UTC. Null if no conversion is needed.
+    let convertedDate = null;
+
+    // Increment year if value is a date in the past.
+    if (originalValue instanceof Date && originalValue < Date.now()) {
+      
+      convertedDate = new Date(originalValue.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET);
+      convertedDate.setUTCFullYear(convertedDate.getUTCFullYear() + 1);
+
+    // Attempt to parse integer-based shortcut (e.g. "10").
+    } else if (/^[1-9][0-9]*$/.test(originalValue)) {
+        
+      // Add days
+      const addDays = parseInt(originalValue);
+      convertedDate = new Date(earliestPossibleDate);
+      convertedDate.setUTCDate(convertedDate.getUTCDate() + addDays - 1);
+    } 
     
-    // Attempt to parse shortcut (e.g. "Mon")
-    if (!this.tryIncrementDateToUTCDay(date, newValue)) {
-      
-      // Attempt to parse integer-based shortcut (e.g. "10") 
-      if (/^[1-9][0-9]*$/.test(newValue)) {
-      
-        // Add days
-        const addDays = parseInt(newValue);
-        date.setUTCDate(date.getUTCDate() + addDays - 1);
+    else {
 
-      } else {
-
-        // No pattern recognized
-        return;
+      // Attempt to parse shortcut (e.g. "Mon").
+      const incrementedDate = new Date(earliestPossibleDate);
+      if (this.tryIncrementDateToUTCDay(incrementedDate, originalValue)) {
+        convertedDate = incrementedDate;
       }
     }
 
-    // Convert back to spreadsheet timezone
-    date = new Date(date.getTime() - BacklogConfig.UTC_TIMEZONE_OFFSET);
+    if (convertedDate) {
 
-    // Replace string with date
-    const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
-    range.setValue(date);
-    range.setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
+      // Convert back to spreadsheet timezone.
+      convertedDate = new Date(convertedDate.getTime() - BacklogConfig.UTC_TIMEZONE_OFFSET);
+
+      // Update cell.
+      const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
+      range.setValue(convertedDate);
+      range.setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
+    }
   }
 
 
