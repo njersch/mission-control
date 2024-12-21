@@ -94,7 +94,7 @@ function parseInput(input) {
 
   // Regex to extract tags from raw input. The capture group 'tag' captures the tag name (e.g. "project"), 'value'
   // captures the corresponding value (e.g. "My Project"), and 'raw' the full expression (e.g. "#project:(My Project)")
-  const matches = [...input.matchAll(/(^|\s)(?<raw>#(?<tag>\w*)(:(?<value>(\w*)|\(([^()]*)\))?)?)/g)];
+  const matches = [...input.matchAll(/(^|\s)(?<raw>#(?<tag>\w*)(:(?<value>\(([^()]*)\)|(\S*))?)?)/g)];
 
   // Extract title of item by removing tags and values
   let title = input;
