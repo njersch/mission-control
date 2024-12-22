@@ -436,37 +436,55 @@ function writeValueUpdateRequest(columnIndex, value, numeric = false) {
  */
 function switchToTab(urlPattern, url) {
 
-  chrome.tabs.query(
-    {'url': urlPattern},
-    (tabs) => {
+  chrome.tabs.query({'url': urlPattern})
+    .then((tabs) => {
 
-      // Tab already open
-      if (tabs.length > 0) {
-
-        const tab = tabs[0];
-
-        // Switch to window
-        chrome.windows.update(tab.windowId, {
-          'focused': true
-        });
-
-        // Switch to tab
-        chrome.tabs.highlight({
-          windowId: tab.windowId,
-          tabs: tab.index
-        });
-
-      } else {
-
-        // Open tab
-        chrome.tabs.create({
+      // Open tab if needed
+      if (tabs.length == 0) {
+        return chrome.tabs.create({
           url: url,
           index: 0,
           pinned: true,
           active: true
         });
       }
+
+      // Switch to tab
+      const tab = tabs[0];
+      chrome.tabs.highlight({
+        windowId: tab.windowId,
+        tabs: tab.index
+      });
+      return tab;
+    })
+    .then((tab) => {
+      
+      // Focus window with tab
+      chrome.windows.update(tab.windowId, {
+        focused: true
+      });
     }
+  );
+}
+
+function switchToSpreadsheet() {
+  switchToTab(
+    `https://docs.google.com/*/${config.SPREADSHEET_ID}*`,
+    `https://docs.google.com/spreadsheets/d/${config.SPREADSHEET_ID}/edit`
+  );
+}
+
+function switchToInbox() {
+  switchToTab(
+    'https://mail.google.com/*',
+    'https://mail.google.com/mail/u/0'
+  );
+}
+
+function switchToCalendar() {
+  switchToTab(
+    'https://calendar.google.com/*',
+    'https://calendar.google.com/calendar/u/0'
   );
 }
 
@@ -484,34 +502,28 @@ chrome.omnibox.onInputEntered.addListener((input, _) => {
 
   switch (input) {
     case '':
-      switchToTab(
-        `https://docs.google.com/*/${config.SPREADSHEET_ID}*`,
-        `https://docs.google.com/spreadsheets/d/${config.SPREADSHEET_ID}/edit`
-      );
+      switchToSpreadsheet();
       break;
 
     case 'i':
-      switchToTab(
-        'https://mail.google.com/*',
-        'https://mail.google.com/mail/u/0'
-      );
+      switchToInbox();
       break;
 
     case 'c':
-      switchToTab(
-        'https://calendar.google.com/*',
-        'https://calendar.google.com/calendar/u/0'
-      );
-      break;
-
-    case 'm':
-      switchToTab(
-        'https://meet.google.com/*',
-        'https://meet.google.com/?authuser=0'
-      );
+      switchToCalendar();
       break;
 
     default:
       insertItem(input);
+  }
+});
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'open-mission-control') {
+    switchToSpreadsheet();
+  } else if (command === 'open-inbox') {
+    switchToInbox();
+  } else if (command === 'open-calendar') {
+    switchToCalendar();
   }
 });

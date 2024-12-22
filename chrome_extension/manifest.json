@@ -6,6 +6,28 @@
     "128": "icon128.png"
   },
   "omnibox": { "keyword" : "m" },
+  "commands": {
+    "open-mission-control": {
+      "suggested_key": {
+        "mac": "MacCtrl+M",
+        "default": "Ctrl+M"
+      },
+      "description": "Open Mission Control spreadsheet."
+    },
+    "open-inbox": {
+      "suggested_key": {
+        "mac": "MacCtrl+I",
+        "default": "Ctrl+I"
+      },
+      "description": "Open Gmail inbox."
+    },
+    "open-calendar": {
+      "suggested_key": {
+        "mac": "MacCtrl+C"
+      },
+      "description": "Open Calendar."
+    }
+  },
   "manifest_version": 3,
   "background": {
     "service_worker": "background.js",

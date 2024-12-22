@@ -41,11 +41,13 @@ To quickly open your to-do list and add items from Chrome's address bar, also in
 
 ### Open your backlog from anywhere in Chrome
 
-To quickly access your backlog while in Chrome, type `m` (for **M**ission Control) into the address bar and hit `SPACE` or `TAB`. Hit `ENTER` and your backlog will open in a new pinned tab. If your backlog is already open, Chrome will navigate to the existing tab.
+To quickly access your backlog while in Chrome, hit `Ctrl + M` (for **M**ission Control) and your backlog will open in a new pinned tab. If your backlog is already open, Chrome will navigate to the existing tab.
 
 ![Open backlog from anywhere](./assets/open_backlog.png)
 
-Similarly, you can quickly navigate to Gmail, Meet and Calendar by typing `m`, `SPACE` and then `i` (for your Gmail inbox), `m` (for Meet), or `c` (for Calendar). It's easy to add your own shortcuts to `chrome_extension/background.js`.
+Similarly, you can quickly open your Gmail inbox with `Ctrl + I` and your calendar with `Ctrl + C` (Mac only).
+
+Go to `chrome://extensions/shortcuts` to make these shortcuts available from outside of Chrome.
 
 
 ### Create a new to-do from anywhere in Chrome
