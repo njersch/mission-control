@@ -434,37 +434,45 @@ function writeValueUpdateRequest(columnIndex, value, numeric = false) {
  * @param urlPattern Pattern to match open tabs against
  * @param url URL to open if no corresponding tab is found
  */
-function switchToTab(urlPattern, url) {
+async function switchToTab(urlPattern, url) {
 
-  chrome.tabs.query({'url': urlPattern})
-    .then((tabs) => {
+  const tabs = await chrome.tabs.query({url: urlPattern});
+  let tab = tabs.length > 0 ? tabs[0] : null;
 
-      // Open tab if needed
-      if (tabs.length == 0) {
-        return chrome.tabs.create({
-          url: url,
-          index: 0,
-          pinned: true,
-          active: true
-        });
-      }
-
-      // Switch to tab
-      const tab = tabs[0];
-      chrome.tabs.highlight({
-        windowId: tab.windowId,
-        tabs: tab.index
-      });
-      return tab;
-    })
-    .then((tab) => {
-      
-      // Focus window with tab
-      chrome.windows.update(tab.windowId, {
-        focused: true
-      });
+  // Open tab if needed
+  if (tab == null) {
+    
+    // Open window if needed
+    const windows = await chrome.windows.getAll({windowTypes: ['normal']});
+    let tabsToClose = null;
+    if (windows.length == 0) {
+      const window = await chrome.windows.create({focused: true});
+      tabsToClose = window.tabs;
     }
-  );
+
+    // Open tab
+    tab = await chrome.tabs.create({
+      url: url,
+      index: 0,
+      pinned: true,
+      active: true
+    });
+
+    // Close other tabs of new window if needed
+    if (tabsToClose) {
+      await chrome.tabs.remove(tabsToClose.map((tab) => tab.id));
+    }
+  } else {
+    
+    // Switch to tab
+    await chrome.tabs.highlight({
+      windowId: tab.windowId,
+      tabs: tab.index
+    });
+  }
+
+  // Focus window
+  await chrome.windows.update(tab.windowId, {focused: true});
 }
 
 function switchToSpreadsheet() {
