@@ -290,16 +290,30 @@ class Backlog {
 
     const updatedItemDescriptions = [];
 
-    // Iterate through all waiting dates
+    // Iterate through all waiting dates.
     for (const [row, waitingDate] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING)) {
 
-      // Mark as 'Next' if waiting date is in the past
-      if (waitingDate instanceof Date && waitingDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET <= endOfDay.getTime()) {
+      const isDate = waitingDate instanceof Date;
+      const isPastDate = isDate && waitingDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET <= endOfDay.getTime();
+
+      // Clear waiting date if it is in the past.
+      if (isPastDate) {
+        sheet.getRange(row, BacklogConfig.COLUMN_WAITING).clearContent();
+      }
+
+      // Set status to 'Next' if waiting date is in the past or not a date.
+      // Including non-date values allows user to spot and correct mistakes in waiting date.
+      if (isPastDate || !isDate) {
+        
         const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
         const status = statusRange.getValue();
-        if (status === BacklogConfig.STATUS_WAITING) {
+        if (status !== BacklogConfig.STATUS_NEXT) {
+
+          // Set status to 'Next'.
+          const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
           statusRange.setValue(BacklogConfig.STATUS_NEXT);
-          sheet.getRange(row, BacklogConfig.COLUMN_WAITING).clearContent();
+          
+          // Mark item for later display to user.
           const title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
           const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
           updatedItemDescriptions.push(`${title} (${project})`);
@@ -307,7 +321,7 @@ class Backlog {
       }
     }
 
-    // Queue descriptions for later display
+    // Queue descriptions for later display to user.
     if (updatedItemDescriptions.length > 0) {
       this.queueNextItemDescriptions(updatedItemDescriptions);
     }
