@@ -374,7 +374,7 @@ class Backlog {
     } else if (/^[1-9][0-9]*$/.test(originalValue)) {
         
       // Add days
-      const addDays = parseInt(originalValue);
+      const addDays = Number.parseInt(originalValue);
       convertedDate = new Date(earliestPossibleDate);
       convertedDate.setUTCDate(convertedDate.getUTCDate() + addDays - 1);
     } 
@@ -499,19 +499,34 @@ class Backlog {
 
 
   /**
-   * Increments a given date to the next date corresponing to the
-   * supplied day shortcut (e.g. "Mon"). Returns whether supplied
-   * shortcut is valid.
+   * Increments a given date to the next date corresponing to the supplied day shortcut
+   * (e.g. "Mon" or "Mon+3"). Returns whether the supplied shortcut is valid.
    */
-  static tryIncrementDateToUTCDay(date, dayName) {
+  static tryIncrementDateToUTCDay(date, dayShortcut) {
+
+    // Parse shortcut if it has the format "XXX+n" where "XXX" is a three-letter day
+    // and "n" the number of weeks to add.
+    const regex = /^([A-Za-z]{3})\+(\d+)$/;
+    const match = dayShortcut.match(regex);
+    const dayName = match ? match[1] : dayShortcut;
+    const weeksToAdd = match ? Number.parseInt(match[2]) : 0;
+    
+    // Get day of week.
     const dayOfWeek = this.getDayFromName(dayName);
     if (dayOfWeek == null) {
         return false;
     }
+
+    // Find days until next occurrence of day.
     let increment = dayOfWeek - date.getUTCDay();
     if (increment < 0) {
       increment += 7;
-    } 
+    }
+
+    // Add weeks.
+    increment += weeksToAdd * 7;
+
+    // Increment date.
     date.setUTCDate(date.getUTCDate() + increment);
     return true;
   }
@@ -638,7 +653,7 @@ class Backlog {
       date.setUTCMonth(date.getUTCMonth() + increment);
 
       // Set day
-      if (typeof day == 'string') {
+      if (typeof day === 'string') {
         if (!this.tryIncrementDateToUTCDay(date, day)) {
           throw Error('Invalid day supplied.: ' + day);
         }

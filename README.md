@@ -90,7 +90,7 @@ To set an item's status to `Waiting`, enter a date in the `Wait until` column. T
 There are a few easy ways to snooze an item:
 
 - Type a positive integer into the `Wait until` column to snooze an item for a number of days.
-- Type a three-letter day, for example "Mon", into the `Wait until` column to snooze an item until the next instance of the given weekday.
+- Type a three-letter day, for example "Mon", into the `Wait until` column to snooze an item until the next instance of the given weekday. To schedule an item a few weeks ahead, append "+" and the desired number of weeks, for example "Mon+3".
 - Enter a date, for example "Aug 9", into the `Wait until` column.
 
 #### "Later" view
