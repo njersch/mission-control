@@ -379,7 +379,7 @@ class Backlog {
       convertedDate.setUTCDate(convertedDate.getUTCDate() + addDays - 1);
     } 
     
-    else {
+    else if (typeof originalValue === 'string') {
 
       // Attempt to parse shortcut (e.g. "Mon").
       const incrementedDate = new Date(earliestPossibleDate);
