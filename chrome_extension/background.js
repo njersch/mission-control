@@ -135,12 +135,18 @@ function parseDateValue(value) {
     return -1;
   }
 
+  // Split suffix with weeks to add (e.g. "3") from provided value (e.g. "Mon+3")
+  const regex = /^([A-Za-z]+)\+(\d+)$/;
+  const match = value.match(regex);
+  value = match ? match[1] : value;
+  const weeksToAdd = match ? Number.parseInt(match[2]) : 0;
+
   // Parse non-negative integer value
   if (/^[0-9]+$/.test(value)) {
     return parseInt(value);
   }
 
-  // // Parse shortcuts like “Monday” or “mon” and determine day of week
+  // Parse shortcuts like “Monday” or “mon” and determine day of week
   const dayOfWeek = DAY_NAMES.findIndex((day) => {
     const lowerDay = day.toLowerCase();
     const lowerValue = value.toLowerCase();
@@ -157,7 +163,7 @@ function parseDateValue(value) {
   if (daysFromNow <= 0) {
     daysFromNow += 7;
   }
-  return daysFromNow;
+  return daysFromNow + weeksToAdd * 7;
 }
 
 
