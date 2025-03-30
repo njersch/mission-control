@@ -46,7 +46,7 @@ class Scheduler {
     const startOfDay = this.getStartOfDay(date);
 
     // Calculate minutes since start time
-    const minutesSinceStart = (date.getTime() - startOfDay.getTime()) / (1000*60);
+    const minutesSinceStart = Math.round((date.getTime() - startOfDay.getTime()) / (1000*60));
     const slotIndex = rounder(minutesSinceStart / SchedulerConfig.SLOT_LENGTH);
     return slotIndex;
   }
@@ -120,9 +120,12 @@ class Scheduler {
       }
 
       // Mark corresponding slots as unavailable
-      const startSlotIndex = this.getSlotIndex(event.getStartTime());
-      const endSlotIndex = this.getSlotIndex(event.getEndTime());
-      availableSlots.fill(false, startSlotIndex, endSlotIndex);
+      const endSlotIndex = this.getSlotIndex(event.getEndTime(), Math.ceil);
+      if (endSlotIndex <= 0) {
+        continue;
+      }
+      let startSlotIndex = this.getSlotIndex(event.getStartTime(), Math.floor);
+      availableSlots.fill(false, Math.max(0, startSlotIndex), endSlotIndex);
     }
 
     return availableSlots;
