@@ -816,7 +816,7 @@ class Backlog {
       if (!success) {
         if (loudly) {
           const ui = SpreadsheetApp.getUi();
-          ui.alert('Error', `Could not schedule event for item "${title}".`, ui.ButtonSet.OK);
+          ui.alert('Not enough time', `There is not enough free time in your calendar to schedule "${title}".`, ui.ButtonSet.OK);
         }
         continue;
       }
