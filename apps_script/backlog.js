@@ -824,7 +824,9 @@ class Backlog {
       // Mark event as scheduled. The row is retrieved by tag to avoid interference from any row
       // changes that may have occurred in the meantime.
       const row = this.findRowByEventTag(tag);
-      sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
+      if (row) {
+        sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
+      }
       silentMetadata?.remove();
     }
   }
