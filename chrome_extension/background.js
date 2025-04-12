@@ -105,18 +105,17 @@ function parseInput(input) {
 
   // Extract tags and value
   const tags = matches.map((match) => {
+    // Trim parentheses around value if needed
+    let value = match.groups.value;
+    value = value && value.startsWith('(') && value.endsWith(')') ? value.substring(1, value.length - 1) : value
 
-      // Trim parentheses around value if needed
-      let value = match.groups.value;
-      value = value && value.startsWith('(') && value.endsWith(')') ? value.substring(1, value.length - 1) : value
-
-      return {
-        tag: match.groups.tag,
-        value: value,
-        raw: match.groups.raw
-      }
-    });
-
+    return {
+      tag: match.groups.tag,
+      value: value,
+      raw: match.groups.raw
+    }
+  });
+  
   return {
     title,
     tags
