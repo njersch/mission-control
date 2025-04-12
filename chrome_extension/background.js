@@ -167,6 +167,29 @@ function parseDateValue(value) {
 
 
 /**
+ * Parses links contained in given markdown text.
+ * @param {string} text Markdown text
+ * @returns {text: string, links: [{ startIndex: int, endIndex: int, url: string}]} Text without markdown, and parsed links
+ */
+function parseMarkdown(text) {
+  const matches = [...text.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\]\(]*)\))/g)];
+  const links = [];
+  let removedCharacters = 0;
+  for (const match of matches) {
+    const { markdown, text: linkText, url } = match.groups;
+    const index = match.index - removedCharacters;
+    text = text.substring(0, index) + linkText + text.substring(index + markdown.length);
+    removedCharacters += markdown.length - linkText.length;
+    links.push({ startIndex: index, endIndex: index + linkText.length, url: url});
+  }
+  return {
+    text,
+    links
+  }
+}
+
+
+/**
  * Gets suggestions for Omnibox based on user input
  * @param input User-entered input into Omnibox
  * @returns {Promise<*[]>|Promise<{deletable: boolean, description: string, content: string}[]>} Suggestions for Omnibox
@@ -336,7 +359,7 @@ function insertItem(input) {
 
 /**
  * Returns batch update requests for Google Sheets API
- * @param {string} title Title of new item
+ * @param {string} title Title of new item (may contain links in markdown format)
  * @param {string} project Project (optional)
  * @param {int} priority Priority (optional)
  * @param {string} status Status (optional)
@@ -361,7 +384,8 @@ function batchUpdateRequests(title,
   });
 
   // Set title
-  requests.push(writeValueUpdateRequest(config.TITLE_COLUMN, title));
+  const { text: parsedTitle, links } = parseMarkdown(title);
+  requests.push(writeValueUpdateRequest(config.TITLE_COLUMN, parsedTitle, false, links));
 
   // Set project
   if (project) {
@@ -413,22 +437,48 @@ function batchUpdateRequests(title,
 
 
 /**
- * Returns update requests for Google Sheets API to write a single value into the given column of the first non-header
- * row
- * @param columnIndex One-based index of column
- * @param value Value to insert
- * @param numeric Whether value is numeric or a string
+ * Returns update requests for Google Sheets API to write a single value into the given column of
+ * the first non-header row.
+ * @param {int} columnIndex One-based index of column
+ * @param {object} value Value to insert
+ * @param {boolean} numeric Whether value is numeric or a string
+ * @param {[{ startIndex, endIndex, url}]} links Links to be inserted, in order of appearance
  * @returns {object} Update request
  */
-function writeValueUpdateRequest(columnIndex, value, numeric = false) {
+function writeValueUpdateRequest(columnIndex, value, numeric = false, links = null) {
+  
+  // Compile cell data.
+  let fields;
+  const cellData = {};
+  if (numeric) {
+    fields = "userEnteredValue";
+    cellData.userEnteredValue = { numberValue: value};
+  } else {
+    fields = "userEnteredValue,textFormatRuns";
+    cellData.userEnteredValue = { stringValue: value};
+    
+    // Format links inside cell.
+    if (links?.length) {
+      cellData.textFormatRuns = [];
+      for (const { startIndex, endIndex, url} of links) {
+        cellData.textFormatRuns.push({ format: { link: { uri: url } }, startIndex: startIndex });
+        if (endIndex < value.length) {
+          cellData.textFormatRuns.push({ startIndex: endIndex });
+        }
+      }
+    }
+  }
+
+  // Compile request.
   return {
     updateCells: {
       start: {
         sheetId: config.SHEET_ID,
         rowIndex: config.HEADER_ROWS,
-        columnIndex: columnIndex - 1},
-      fields: "userEnteredValue",
-      rows: {values: [{userEnteredValue: {[numeric ? "numberValue" : "stringValue"]: value}}]}
+        columnIndex: columnIndex - 1
+      },
+      fields: fields,
+      rows: { values: [cellData] }
     }
   }
 }
