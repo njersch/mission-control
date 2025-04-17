@@ -341,12 +341,13 @@ function insertItem(input) {
   const body = JSON.stringify({requests: batchUpdateRequests(title, project, priority, status, date, duration)});
   sendRequest('POST', url, body)
       .then(() => {
-        console.log(`Item added: "${title}"`);
+        const { text: renderedTitle } = parseMarkdown(title);
+        console.log(`Item added: "${renderedTitle}"`);
         chrome.notifications.create(null, {
           type: 'basic',
           iconUrl: 'icon128.png',
           title: 'Item added',
-          message: title,
+          message: renderedTitle,
           eventTime: Date.now() + 2000,
           priority: 1
         });
@@ -384,8 +385,8 @@ function batchUpdateRequests(title,
   });
 
   // Set title
-  const { text: parsedTitle, links } = parseMarkdown(title);
-  requests.push(writeValueUpdateRequest(config.TITLE_COLUMN, parsedTitle, false, links));
+  const { text: renderedTitle, links } = parseMarkdown(title);
+  requests.push(writeValueUpdateRequest(config.TITLE_COLUMN, renderedTitle, false, links));
 
   // Set project
   if (project) {
