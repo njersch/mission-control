@@ -1,5 +1,9 @@
 export const SPREADSHEET_ID = '';
-export const SHEET_ID = 0;
+export const SHEET_ID = '0';
+
+export const NEXT_FILTER_VIEW_ID = '952962288';
+export const WAITING_FILTER_VIEW_ID = '1531329478';
+export const LATER_FILTER_VIEW_ID = '624615919';
 
 export const HEADER_ROWS = 1;
 

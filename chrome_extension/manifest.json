@@ -12,20 +12,29 @@
         "mac": "MacCtrl+M",
         "default": "Ctrl+M"
       },
-      "description": "Open Mission Control spreadsheet."
+      "description": "Open tab: Mission Control spreadsheet"
     },
     "open-inbox": {
       "suggested_key": {
         "mac": "MacCtrl+I",
         "default": "Ctrl+I"
       },
-      "description": "Open Gmail inbox."
+      "description": "Open tab: Gmail inbox"
     },
     "open-calendar": {
       "suggested_key": {
         "mac": "MacCtrl+C"
       },
-      "description": "Open Calendar."
+      "description": "Open tab: Calendar"
+    },
+    "open-next-filter-view": {
+      "description": "Open filter view: Next"
+    },
+    "open-waiting-filter-view": {
+      "description": "Open filter view: Waiting"
+    },
+    "open-later-filter-view": {
+      "description": "Open filter view: Later"
     }
   },
   "manifest_version": 3,

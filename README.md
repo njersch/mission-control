@@ -100,6 +100,10 @@ There are a few easy ways to snooze an item:
 
 **"Later"** is your **backlog view** and includes only items with a `Later` status. Use this view to manage all the to-dos that you want to keep in your backlog for later review, so you can come back to them at some point and decide when and how to deal with them. Make sure you review them regularly and delete obsolete items, so your **"Later"** view doesn't become a unmanageable black hole of stale to-dos. Pro tip: add a [recurring item](#add-recurring-to-dos) to review your "Later" items once a week.
 
+#### Switch views via shortcuts
+
+While on the Mission Control sheet, you can switch views using your keyboard. Go to `chrome://extensions/shortcuts` to set up shortcuts.
+
 
 ### Add recurring to-dos
 

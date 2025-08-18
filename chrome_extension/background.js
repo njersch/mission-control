@@ -552,6 +552,48 @@ function switchToCalendar() {
   );
 }
 
+
+/**
+ * Switches to filter view if current tab is the Mission Control spreadsheet.
+ * @param {string} filterViewId Filter view ID to switch to.
+ */
+async function switchToFilterView(filterViewId) {
+  
+  const [activeTab] = await chrome.tabs.query({active: true, currentWindow: true});
+
+  // Check if current tab is the Mission Control spreadsheet
+  const urlPattern = `https://docs.google.com/spreadsheets/d/${config.SPREADSHEET_ID}`;
+  if (!activeTab || !activeTab.url || !activeTab.url.startsWith(urlPattern)) {
+    return;
+  }
+
+  // Parse hash parameters.
+  // Example: #gid=0&fvid=123
+  const url = new URL(activeTab.url);
+  let hashParams = {};
+  if (url.hash.startsWith('#')) {
+    const params = url.hash.substring(1).split('&');
+    for (const param of params) {
+      const [key, value] = param.split('=');
+      hashParams[key] = value;
+    }
+  }
+  
+  // Check if current sheet is the right one.
+  if (hashParams['gid'] !== config.SHEET_ID.toString()) {
+    return;
+  }
+
+  // Set filter view in hash parameters.
+  hashParams['fvid'] = filterViewId;
+  const hash = Object.entries(hashParams)
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&');
+  url.hash = `#${hash}`;
+  await chrome.tabs.update(activeTab.id, {url: url.toString()});
+}
+
+
 chrome.omnibox.onInputStarted.addListener(() => {
   // Fetch and cache project names from sheet
   updatedCachedProjectNames();
@@ -589,5 +631,11 @@ chrome.commands.onCommand.addListener((command) => {
     switchToInbox();
   } else if (command === 'open-calendar') {
     switchToCalendar();
+  } else if (command === 'open-next-filter-view') {
+    switchToFilterView(config.NEXT_FILTER_VIEW_ID);
+  } else if (command === 'open-waiting-filter-view') {
+    switchToFilterView(config.WAITING_FILTER_VIEW_ID);
+  } else if (command === 'open-later-filter-view') {
+    switchToFilterView(config.LATER_FILTER_VIEW_ID);
   }
 });
