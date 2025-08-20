@@ -27,6 +27,9 @@
       },
       "description": "Open tab: Calendar"
     },
+    "open-all-filter-view": {
+      "description": "Open filter view: All"
+    },
     "open-next-filter-view": {
       "description": "Open filter view: Next"
     },
@@ -35,6 +38,9 @@
     },
     "open-later-filter-view": {
       "description": "Open filter view: Later"
+    },
+    "reload-filter-view": {
+      "description": "Reload filter view"
     }
   },
   "manifest_version": 3,

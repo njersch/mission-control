@@ -13,6 +13,14 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets'
 
 
+/** Key for sheet ID in URL's hash parameters. */
+const SHEET_HASH_PARAM_KEY = 'gid';
+
+
+/** Key for filter view ID in URL's hash parameters. */
+const FILTER_VIEW_HASH_PARAM_KEY = 'fvid';
+
+
 /** Tags and corresponding suggestions */
 const TAGS = [
   {
@@ -556,6 +564,7 @@ function switchToCalendar() {
 /**
  * Switches to filter view if current tab is the Mission Control spreadsheet.
  * @param {string} filterViewId Filter view ID to switch to.
+ * @returns {string} ID of the previous filter view, or null if filter view was not changed.
  */
 async function switchToFilterView(filterViewId) {
   
@@ -564,13 +573,14 @@ async function switchToFilterView(filterViewId) {
   // Check if current tab is the Mission Control spreadsheet
   const urlPattern = `https://docs.google.com/spreadsheets/d/${config.SPREADSHEET_ID}`;
   if (!activeTab || !activeTab.url || !activeTab.url.startsWith(urlPattern)) {
-    return;
+    return null;
   }
-
+  
+  
   // Parse hash parameters.
   // Example: #gid=0&fvid=123
   const url = new URL(activeTab.url);
-  let hashParams = {};
+  const hashParams = {};
   if (url.hash.startsWith('#')) {
     const params = url.hash.substring(1).split('&');
     for (const param of params) {
@@ -578,19 +588,35 @@ async function switchToFilterView(filterViewId) {
       hashParams[key] = value;
     }
   }
-  
+
   // Check if current sheet is the right one.
-  if (hashParams['gid'] !== config.SHEET_ID.toString()) {
-    return;
+  if (hashParams[SHEET_HASH_PARAM_KEY] !== config.SHEET_ID.toString()) {
+    return null;
   }
 
+  // Get previous filter view ID.
+  const previousFilterViewId = hashParams[FILTER_VIEW_HASH_PARAM_KEY];
+
   // Set filter view in hash parameters.
-  hashParams['fvid'] = filterViewId;
+  hashParams[FILTER_VIEW_HASH_PARAM_KEY] = filterViewId;
   const hash = Object.entries(hashParams)
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
   url.hash = `#${hash}`;
   await chrome.tabs.update(activeTab.id, {url: url.toString()});
+
+  return previousFilterViewId;
+}
+
+
+/**
+ * Reloads the filter view.
+ */
+async function reloadFilterView() {
+  const previousFilterViewId = await switchToFilterView(config.ALL_FILTER_VIEW_ID);
+  if (previousFilterViewId !== null) {
+    await switchToFilterView(previousFilterViewId);
+  }
 }
 
 
@@ -631,11 +657,15 @@ chrome.commands.onCommand.addListener((command) => {
     switchToInbox();
   } else if (command === 'open-calendar') {
     switchToCalendar();
+  } else if (command === 'open-all-filter-view') {
+    switchToFilterView(config.ALL_FILTER_VIEW_ID);
   } else if (command === 'open-next-filter-view') {
     switchToFilterView(config.NEXT_FILTER_VIEW_ID);
   } else if (command === 'open-waiting-filter-view') {
     switchToFilterView(config.WAITING_FILTER_VIEW_ID);
   } else if (command === 'open-later-filter-view') {
     switchToFilterView(config.LATER_FILTER_VIEW_ID);
+  } else if (command === 'reload-filter-view') {
+    reloadFilterView();
   }
 });
