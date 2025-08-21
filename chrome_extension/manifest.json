@@ -41,6 +41,13 @@
     },
     "reload-filter-view": {
       "description": "Reload filter view"
+    },
+    "mark-item-done": {
+      "suggested_key": {
+        "mac": "Command+Period",
+        "default": "Ctrl+Period"
+      },
+      "description": "Mark selected item as done"
     }
   },
   "manifest_version": 3,
@@ -58,5 +65,12 @@
     "notifications",
     "storage"
   ],
-  "host_permissions": ["https://script.googleapis.com/*"]
+  "host_permissions": ["https://script.googleapis.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/spreadsheets/*"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }

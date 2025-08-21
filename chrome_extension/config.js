@@ -1,5 +1,5 @@
 export const SPREADSHEET_ID = '';
-export const SHEET_ID = '0';
+export const BACKLOG_SHEET_ID = '0';
 
 export const ALL_FILTER_VIEW_ID = '1418263521';
 export const NEXT_FILTER_VIEW_ID = '952962288';
@@ -9,6 +9,7 @@ export const LATER_FILTER_VIEW_ID = '624615919';
 export const HEADER_ROWS = 1;
 
 // Column indices
+export const COMPLETED_COLUMN = 1; // one-based
 export const TITLE_COLUMN = 3; // one-based
 export const PROJECT_COLUMN = 5; // one-based
 export const PRIORITY_COLUMN = 6; // one-based

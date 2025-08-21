@@ -387,7 +387,7 @@ function batchUpdateRequests(title,
   // Insert new row at the top
   requests.push({
     insertDimension: {
-          range: {sheetId: config.SHEET_ID, dimension: "ROWS", startIndex: 1, endIndex: 2},
+          range: {sheetId: config.BACKLOG_SHEET_ID, dimension: "ROWS", startIndex: 1, endIndex: 2},
           inheritFromBefore: false
         }
   });
@@ -421,7 +421,7 @@ function batchUpdateRequests(title,
         developerMetadata: {
           location: {
             dimensionRange: {
-              sheetId: config.SHEET_ID,
+              sheetId: config.BACKLOG_SHEET_ID,
               dimension: "ROWS",
                   startIndex: config.HEADER_ROWS,
                   endIndex: config.HEADER_ROWS + 1
@@ -482,7 +482,7 @@ function writeValueUpdateRequest(columnIndex, value, numeric = false, links = nu
   return {
     updateCells: {
       start: {
-        sheetId: config.SHEET_ID,
+        sheetId: config.BACKLOG_SHEET_ID,
         rowIndex: config.HEADER_ROWS,
         columnIndex: columnIndex - 1
       },
@@ -562,37 +562,19 @@ function switchToCalendar() {
 
 
 /**
- * Switches to filter view if current tab is the Mission Control spreadsheet.
+ * Switches to filter view if current tab is the backlog spreadsheet.
  * @param {string} filterViewId Filter view ID to switch to.
  * @returns {string} ID of the previous filter view, or null if filter view was not changed.
  */
 async function switchToFilterView(filterViewId) {
-  
-  const [activeTab] = await chrome.tabs.query({active: true, currentWindow: true});
 
-  // Check if current tab is the Mission Control spreadsheet
-  const urlPattern = `https://docs.google.com/spreadsheets/d/${config.SPREADSHEET_ID}`;
-  if (!activeTab || !activeTab.url || !activeTab.url.startsWith(urlPattern)) {
+  const activeTab = await getActiveTabIfBacklogSheet();
+
+  if (!activeTab) {
     return null;
   }
-  
-  
-  // Parse hash parameters.
-  // Example: #gid=0&fvid=123
-  const url = new URL(activeTab.url);
-  const hashParams = {};
-  if (url.hash.startsWith('#')) {
-    const params = url.hash.substring(1).split('&');
-    for (const param of params) {
-      const [key, value] = param.split('=');
-      hashParams[key] = value;
-    }
-  }
 
-  // Check if current sheet is the right one.
-  if (hashParams[SHEET_HASH_PARAM_KEY] !== config.SHEET_ID.toString()) {
-    return null;
-  }
+  const hashParams = getHashParams(activeTab.url);
 
   // Get previous filter view ID.
   const previousFilterViewId = hashParams[FILTER_VIEW_HASH_PARAM_KEY];
@@ -602,6 +584,7 @@ async function switchToFilterView(filterViewId) {
   const hash = Object.entries(hashParams)
     .map(([key, value]) => `${key}=${value}`)
     .join('&');
+  const url = new URL(activeTab.url);
   url.hash = `#${hash}`;
   await chrome.tabs.update(activeTab.id, {url: url.toString()});
 
@@ -617,6 +600,63 @@ async function reloadFilterView() {
   if (previousFilterViewId !== null) {
     await switchToFilterView(previousFilterViewId);
   }
+}
+
+
+/**
+ * Marks the selected backlog item as done.
+ */
+async function markSelectedItemAsDone() {
+  const activeTab = await getActiveTabIfBacklogSheet();
+  if (!activeTab) {
+    return;
+  }
+  const completedColumn = String.fromCharCode(64 + config.COMPLETED_COLUMN);
+  const message = { action: 'mark_item_done', completedColumn: completedColumn };
+  chrome.tabs.sendMessage(activeTab.id, message);
+}
+
+
+/**
+ * Returns hash parameters from a URL. Hash parameters are key-value pairs separated by ampersands,
+ * e.g. #gid=0&fvid=123.
+ * @param {string} url URL
+ * @returns {object} Hash parameters, e.g. { gid: '0', fvid: '123' }
+ */
+function getHashParams(url) {
+  const hash = new URL(url).hash;
+  const hashParams = {};
+  if (hash.startsWith('#')) {
+    const params = hash.substring(1).split('&');
+    for (const param of params) {
+      const [key, value] = param.split('=');
+      hashParams[key] = value;
+    }
+  }
+  return hashParams;
+}
+
+
+/**
+ * Returns the active tab if it is a Google Sheets page and the current sheet is the backlog sheet.
+ * @returns {object} Active tab if it is a Google Sheets page and the current sheet is the backlog sheet, otherwise null.
+ */
+async function getActiveTabIfBacklogSheet() {
+  
+  const [activeTab] = await chrome.tabs.query({active: true, currentWindow: true});
+
+  // Check if current tab is a Google Sheets page.
+  if (!activeTab || !activeTab.url.includes('docs.google.com/spreadsheets')) {
+    return null;
+  }
+
+  // Check if current sheet is the backlog sheet.
+  const hashParams = getHashParams(activeTab.url);
+  if (hashParams[SHEET_HASH_PARAM_KEY] !== config.BACKLOG_SHEET_ID.toString()) {
+    return null;
+  }
+
+  return activeTab;
 }
 
 
@@ -667,5 +707,7 @@ chrome.commands.onCommand.addListener((command) => {
     switchToFilterView(config.LATER_FILTER_VIEW_ID);
   } else if (command === 'reload-filter-view') {
     reloadFilterView();
+  } else if (command === 'mark-item-done') {
+    markSelectedItemAsDone();
   }
 });
