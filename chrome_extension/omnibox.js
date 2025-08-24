@@ -10,7 +10,7 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 
 /** Base URL for Google Sheets API */
-const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets'
+const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 
 /** Tags and corresponding suggestions */
@@ -42,7 +42,7 @@ const TAGS = [
  * Listener for when user starts typing in Omnibox.
  */
 export function onInputStarted() {
-  updatedCachedProjectNames();
+  updateCachedProjectNames();
 }
 
 
@@ -85,7 +85,7 @@ function setCachedProjectNames(names) {
 /**
  * Updates cached project names asynchronously
  */
-function updatedCachedProjectNames() {
+function updateCachedProjectNames() {
   const range = `R${1 + config.HEADER_ROWS}C${config.PROJECT_COLUMN}:C${config.PROJECT_COLUMN}`; // in R1C1 notation
   const url = `${SHEETS_API}/${config.SPREADSHEET_ID}/values/${range}?majorDimension=COLUMNS`;
   sendRequest('GET', url)
