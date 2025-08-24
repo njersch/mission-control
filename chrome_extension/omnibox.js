@@ -39,6 +39,32 @@ const TAGS = [
 
 
 /**
+ * Listener for when user starts typing in Omnibox.
+ */
+export function onInputStarted() {
+  updatedCachedProjectNames();
+}
+
+
+/**
+ * Listener for when user changes input in Omnibox.
+ */
+export function onInputChanged(input, suggest) {
+  getSuggestions(input).then(suggest);
+}
+
+
+/**
+ * Listener for when user presses Enter in Omnibox.
+ */
+export function onInputEntered(input, _) {
+  if (input.length > 0) {
+    insertItem(input);
+  }
+}
+
+
+/**
  * Gets cached project names
  * @returns {PromiseLike<ArrayLike<string>>} Project names
  */
@@ -59,7 +85,7 @@ function setCachedProjectNames(names) {
 /**
  * Updates cached project names asynchronously
  */
-export function updatedCachedProjectNames() {
+function updatedCachedProjectNames() {
   const range = `R${1 + config.HEADER_ROWS}C${config.PROJECT_COLUMN}:C${config.PROJECT_COLUMN}`; // in R1C1 notation
   const url = `${SHEETS_API}/${config.SPREADSHEET_ID}/values/${range}?majorDimension=COLUMNS`;
   sendRequest('GET', url)
@@ -194,7 +220,7 @@ function parseMarkdown(text) {
  * @param input User-entered input into Omnibox
  * @returns {ArrayLike<{deletable: boolean, description: string, content: string}>} Suggestions for Omnibox
  */
-export async function getSuggestions(input) {
+async function getSuggestions(input) {
 
   // Extract tags from input (e.g. "#prio").
   const { tags } = parseInput(input);
@@ -327,7 +353,7 @@ function sendRequest(method, url, body = undefined) {
  * Inserts new item into spreadsheet
  * @param input Raw user-entered input into Omnibox
  */
-export function insertItem(input) {
+function insertItem(input) {
 
   // Parse input
   const { title, tags } = parseInput(input);

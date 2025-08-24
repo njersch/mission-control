@@ -4,32 +4,10 @@ import * as tabShortcuts from './tab_shortcuts.js';
 import * as sheetShortcuts from './sheet_shortcuts.js';
 
 
-chrome.omnibox.onInputStarted.addListener(() => {
-  omnibox.updatedCachedProjectNames();
-});
+chrome.omnibox.onInputStarted.addListener(omnibox.onInputStarted);
+chrome.omnibox.onInputChanged.addListener(omnibox.onInputChanged);
+chrome.omnibox.onInputEntered.addListener(omnibox.onInputEntered);
 
-chrome.omnibox.onInputChanged.addListener((input, suggest) => {
-  omnibox.getSuggestions(input).then(suggest);
-});
-
-chrome.omnibox.onInputEntered.addListener((input, _) => {
-  switch (input) {
-    case '':
-      tabShortcuts.switchToSpreadsheet();
-      break;
-
-    case 'i':
-      tabShortcuts.switchToInbox();
-      break;
-
-    case 'c':
-      tabShortcuts.switchToCalendar();
-      break;
-
-    default:
-      omnibox.insertItem(input);
-  }
-});
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'open-mission-control') {
