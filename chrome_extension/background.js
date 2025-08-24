@@ -24,14 +24,14 @@ const FILTER_VIEW_HASH_PARAM_KEY = 'fvid';
 /** Tags and corresponding suggestions */
 const TAGS = [
   {
-    tag: config.TAG_PRIORITY,
-    description: 'Set priority',
-    getPossibleValues: () => Promise.resolve(['0', '1', '2', '3'])
-  },
-  {
     tag: config.TAG_PROJECT,
     description: 'Set project',
     getPossibleValues: () => getCachedProjectNames()
+  },
+  {
+    tag: config.TAG_PRIORITY,
+    description: 'Set priority',
+    getPossibleValues: () => Promise.resolve(['0', '1', '2', '3'])
   },
   {
     tag: config.TAG_DATE,
@@ -198,80 +198,108 @@ function parseMarkdown(text) {
 
 
 /**
- * Gets suggestions for Omnibox based on user input
+ * Gets suggestions for Omnibox based on user input.
  * @param input User-entered input into Omnibox
- * @returns {Promise<*[]>|Promise<{deletable: boolean, description: string, content: string}[]>} Suggestions for Omnibox
+ * @returns {ArrayLike<{deletable: boolean, description: string, content: string}>} Suggestions for Omnibox
  */
-function getSuggestions(input) {
+async function getSuggestions(input) {
 
-  // Extract tags from input (e.g. "#prio"
+  // Extract tags from input (e.g. "#prio").
   const {tags} = parseInput(input);
 
-  // Check if any tags are found
-  if (tags.length === 0) {
-    return Promise.resolve([]);
+  // Determine complete tags (e.g. "project"), i.e. valid tags that are already present in input.
+  const completeTags = tags.filter((tag) => TAGS.some((otherTag) => tag.tag === otherTag.tag));
+
+  // Determine missing tags, i.e. tags that are not yet present in input.
+  const missingTags = TAGS.filter((tag) => !completeTags.some((otherTag) => tag.tag === otherTag.tag));
+
+  // If input ends with a space, suggest all missing tags.
+  if (input.endsWith(' ')) {
+    return getTagSuggestions(input, null, missingTags);
   }
 
-  // Get last tag expression
+  // If there are no tags at all, don't suggest anything.
+  if (tags.length === 0) {
+    return [];
+  }
+
   const lastTag = tags[tags.length - 1];
 
-  // If input does not end with a tag expression, don't suggest anything
-  if (!input.endsWith(lastTag.raw)) {
-    return Promise.resolve([]);
+  // If input ends on value entry (e.g. "#project:S" or "#project:"), suggest matching values.
+  if (input.endsWith(lastTag.raw) && lastTag.value) {
+    return getTagValueSuggestions(input, lastTag.tag, lastTag.value);
   }
 
-  // If tag expression includes any value (e.g. "#project:S"), suggest matching values
-  if (lastTag.value) {
-    const tag = TAGS.find((tag) => tag.tag === lastTag.tag);
-
-    if (!tag || !tag.getPossibleValues) {
-      return Promise.resolve([]);
-    }
-
-    // Determine suggestions
-    return tag.getPossibleValues()
-        .then((values) => {
-
-          return values
-              // Find matching inputs, ignoring case
-              .filter((value) => value.toUpperCase().startsWith(lastTag.value.toUpperCase()))
-
-              // Format suggestions
-              .map((suggestion) => {
-
-                // Wrap in parentheses if suggestion contains whitespace
-                const wrappedSuggestion = /\s/g.test(suggestion) ? `(${suggestion})` : suggestion;
-
-                return {
-                  content: `${input.substring(0, input.length - lastTag.value.length) + wrappedSuggestion} `, // trailing space
-                  description: `<dim>#${tag.tag}:</dim> <match><url>${suggestion}</url></match>`,
-                  deletable: false
-                }
-              });
-        })
+  // If input ends on tag entry (e.g. "#proj"), suggest matching tags from missing tags.
+  if (input.endsWith(lastTag.raw)) {
+    return getTagSuggestions(input, lastTag.raw, missingTags);
   }
 
-  // Determine other full tags (e.g. "project") that are present in input
-  const otherTags = tags
-      .map((tag) => tag.tag)
-      .filter((otherTag) => {
-        const isKnownTag = TAGS.some((tag) => tag.tag === otherTag);
-        return isKnownTag && otherTag !== lastTag.tag;
-      });
-
-  // Determine tags to suggest
-  const suggestions = TAGS
-      .filter((tag) => tag.tag.startsWith(lastTag.tag) && !otherTags.includes(tag.tag))
-      .map((tag) => {
-        return {
-          content: input.substring(0, input.length - lastTag.raw.length) + '#' +  tag.tag + ':',
-          description: `<match><url>#${tag.tag}</url></match><dim>  -  ${tag.description}</dim> `,
-          deletable: false
-        }
-      });
-  return Promise.resolve(suggestions);
+  return [];
 }
 
+
+/**
+ * Gets Omnibox suggestions for tags that match a given prefix.
+ * @param {string} input User-entered input into Omnibox
+ * @param {string} rawTagPrefix Raw tag prefix (e.g. "#project")
+ * @param {ArrayLike<{tag: string, description: string}>} tags Tags to suggest
+ * @returns {ArrayLike} Suggestions for Omnibox
+ */
+function getTagSuggestions(input, rawTagPrefix, tags) {
+
+  // Determine tags that match provided prefix.
+  let matchingTags = tags;
+  if (rawTagPrefix) {
+    matchingTags = matchingTags.filter((tag) => `#${tag.tag}`.startsWith(rawTagPrefix));
+  }
+
+  const suggestions = matchingTags.map((tag) => {
+    const prefixLength = rawTagPrefix ? rawTagPrefix.length : 0;
+    return {
+      content: input.substring(0, input.length - prefixLength) + '#' +  tag.tag + ':',
+      description: `<match><url>#${tag.tag}</url></match><dim>  -  ${tag.description}</dim> `,
+      deletable: false
+    }
+  });
+  
+  return suggestions;
+}
+
+
+/**
+ * Gets Omnibox suggestions for values of a given tag that match a given prefix.
+ * @param {string} input User-entered input into Omnibox
+ * @param {string} tag Tag (e.g. "project")
+ * @param {string} valuePrefix Value prefix (e.g. "S")
+ * @returns {ArrayLike} Suggestions for Omnibox
+ */
+async function getTagValueSuggestions(input, tag, valuePrefix) {
+  
+  // Get function to determine possible values.
+  const matchingTag = TAGS.find((otherTag) => otherTag.tag === tag);
+
+  if (!matchingTag) {
+    return [];
+  }
+
+  // Determine possible values.
+  let values = await matchingTag.getPossibleValues();
+  values = values.filter((value) => value.toUpperCase().startsWith(valuePrefix.toUpperCase()));
+
+  // Format suggestions.
+  return values.map((value) => {
+
+    // Wrap suggested value in parentheses if it contains whitespace.
+    const wrappedValue = /\s/g.test(value) ? `(${value})` : value;
+
+    return {
+      content: `${input.substring(0, input.length - valuePrefix.length) + wrappedValue} `, // trailing space
+      description: `<dim>#${matchingTag.tag}:</dim> <match><url>${value}</url></match>`,
+      deletable: false
+    }
+  });
+}
 
 /**
  * Sends a request to the Google Sheets API
@@ -666,8 +694,7 @@ chrome.omnibox.onInputStarted.addListener(() => {
 });
 
 chrome.omnibox.onInputChanged.addListener((input, suggest) => {
-  // Display suggestions
-  getSuggestions(input).then((suggestions) => suggest(suggestions));
+  getSuggestions(input).then(suggest);
 });
 
 chrome.omnibox.onInputEntered.addListener((input, _) => {
