@@ -91,7 +91,7 @@ function updateCachedProjectNames() {
   sendRequest('GET', url)
     .then((response) => response.json())
     .then(({ values }) => {
-      let projectNames = values[0];
+      let projectNames = values ? values[0] : [];
 
       // Trim whitespace and filter out empty values
       projectNames = projectNames
