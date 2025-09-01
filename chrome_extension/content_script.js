@@ -83,8 +83,6 @@ async function setCurrentCellIndex(cellIndex) {
   });
   inputBox.dispatchEvent(clickEvent);
 
-  await delay(80); // Delay for smoother execution
-
   // Trigger enter key event
   const enterEvent = new KeyboardEvent("keydown", {
     key: "Enter",
@@ -154,10 +152,6 @@ async function simulateValueSet(value) {
     cancelable: true,
   });
   inputBox.dispatchEvent(keydownPress);
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 
