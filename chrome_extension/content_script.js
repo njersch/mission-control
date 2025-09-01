@@ -143,51 +143,41 @@ async function setCellValue(cellIndex, value, preserveCellIndex = true) {
 async function simulateValueSet(value) {
   const inputBox = document.querySelector('.cell-input');
 
-  if (inputBox) {
-    // Trigger click event
-    nonReactive = true;
-    const clickEvent = new MouseEvent('click', {
-      view: window,
-      bubbles: true,
-      cancelable: true,
-    });
-    inputBox.dispatchEvent(clickEvent);
-    nonReactive = false;
-
-    //await delay(80); // Delay for smoother execution
-
-    // Trigger keydown event
-    const keydownEvent = new KeyboardEvent('keydown', {
-      key: 'Enter',
-      code: 'Enter',
-      keyCode: 13,
-      view: window,
-      bubbles: true,
-      cancelable: true,
-    });
-    inputBox.dispatchEvent(keydownEvent);
-
-    // Set the cell value
-    inputBox.innerText = value;
-
-    // Trigger input event
-    const inputEvent = new Event('input', {
-      bubbles: true,
-      cancelable: true,
-    });
-    inputBox.dispatchEvent(inputEvent);
-
-    // Trigger keydown event
-    const keydownPress = new KeyboardEvent('keypress', {
-      key: 'Enter',
-      code: 'Enter',
-      keyCode: 13,
-      view: window,
-      bubbles: true,
-      cancelable: true,
-    });
-    inputBox.dispatchEvent(keydownPress);
+  if (!inputBox) {
+    return;
   }
+
+  // Trigger keydown event
+  const keydownEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+  inputBox.dispatchEvent(keydownEvent);
+
+  // Set the cell value
+  inputBox.innerText = value;
+
+  // Trigger input event
+  const inputEvent = new Event('input', {
+    bubbles: true,
+    cancelable: true,
+  });
+  inputBox.dispatchEvent(inputEvent);
+
+  // Trigger keydown event
+  const keydownPress = new KeyboardEvent('keypress', {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+  inputBox.dispatchEvent(keydownPress);
 }
 
 function delay(ms) {
