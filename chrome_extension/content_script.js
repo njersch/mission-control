@@ -99,30 +99,6 @@ async function setCurrentCellIndex(cellIndex) {
 
 
 /**
- * Gets the value from a specified cell in Google Sheets and restores the previously selected cell.
- * @param {string|object} cellIndex - The index of the cell to retrieve the value from (e.g., "A1", "B2") or a JSON object { column, row }.
- * @returns {string} The value of the specified cell.
- */
-async function getValueFromCell(cellIndex, goPreviousCell = true) {
-  if (goPreviousCell) {
-    const previousCellIndex = getCurrentCellIndex();
-  }
-
-  if (typeof cellIndex === "string") {
-    await setCurrentCellIndex(cellIndex);
-  } else if (typeof cellIndex === "object") {
-    await setCurrentCellIndex(cellIndex.column + cellIndex.row);
-  }
-
-  const cellValue = getCurrentCellValue();
-  if (goPreviousCell) {
-    await setCurrentCellIndex(previousCellIndex);
-  }
-  return cellValue;
-}
-
-
-/**
  * Sets the value of the specified cell in Google Sheets by simulating a user action.
  * @param {string} cellIndex The index of the cell to set the value of (e.g., "A1", "B2").
  * @param {string} value The value to set in the cell.
