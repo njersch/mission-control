@@ -28,5 +28,7 @@ chrome.commands.onCommand.addListener((command) => {
     sheetShortcuts.reloadFilterView();
   } else if (command === 'mark-item-done') {
     sheetShortcuts.markSelectedItemAsDone();
+  } else if (command === 'schedule-items') {
+    sheetShortcuts.scheduleItems();
   }
 });

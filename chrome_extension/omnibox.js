@@ -474,7 +474,7 @@ function batchUpdateRequests(title,
             }
           },
           visibility: "DOCUMENT",
-          metadataKey: config.SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY,
+          metadataKey: config.AUTOMATICALLY_SCHEDULABLE_DEVELOPER_METADATA_KEY,
           metadataValue: "" // no value needed, key suffices
         }
       }

@@ -17,8 +17,8 @@ function insertRecurringItem() {
 
 
 /**
- * Function to create backlog items for recurring items that are due,
- * globally callable for example from a trigger.
+ * Function to create backlog items for recurring items that are due.
+ * Globally callable, for example from a trigger.
  */
 function scheduleRecurringBacklogItems() {
   Backlog.scheduleRecurringBacklogItems();
@@ -26,8 +26,8 @@ function scheduleRecurringBacklogItems() {
 
 
 /**
- * Function to set 'Waiting' backlog items to 'Next, globally callable
- * for example from a trigger.
+ * Function to set 'Waiting' backlog items to 'Next'.
+ * Globally callable, for example from a trigger.
  */
 function setWaitingItemsToNext() {
   Backlog.setWaitingItemsToNext();
@@ -35,26 +35,25 @@ function setWaitingItemsToNext() {
 
 
 /**
- * Function to schedule events for backlog items loudly, globally callable
- * for example from a trigger.
+ * Function to schedule events for backlog items and show errors, if any.
+ * Globally callable, for example from a trigger.
  */
-function scheduleEventsLoudly() {
-  Backlog.scheduleEvents(true);
+function scheduleAllEventsLoudly() {
+  Backlog.scheduleEvents(false, true);
 }
 
 
 /**
- * Function to schedule events for backlog items silently, globally callable
- * for example from a trigger.
+ * Function to schedule events for backlog items that are marked as automatically
+ * schedulable. Globally callable, for example from a trigger.
  */
-function scheduleEventsSilently() {
-  Backlog.scheduleEvents(false);
+function scheduleAutomaticallySchedulableEventsSilently() {
+  Backlog.scheduleEvents(true, false);
 }
 
 
 /**
- * Function to import items from inbox, globally callable for example from
- * a trigger.
+ * Function to import items from inbox. Globally callable, for example from a trigger.
  */
 function importFromInbox() {
   Backlog.importFromInbox();
@@ -62,8 +61,7 @@ function importFromInbox() {
 
 
 /**
- * Function to handle calendar updates, globally callable for example from a
- * trigger.
+ * Function to handle calendar updates. Globally callable, for example from a trigger.
  */
 function handleCalendarUpdates() {
   Backlog.handleCalendarUpdates();
@@ -71,9 +69,9 @@ function handleCalendarUpdates() {
 
 
 /**
- * Function to install all required triggers if not yet installed, globally
- * callable for example from a button.
+ * Function to install all required triggers if not yet installed.
+ * Globally callable, for example from a button.
  */
-function installTriggersIfNeeded() {
+function installTriggersIfNeeded() {
   Backlog.installTriggersIfNeeded();
 }

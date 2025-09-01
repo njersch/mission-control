@@ -48,6 +48,9 @@
         "default": "Ctrl+Period"
       },
       "description": "Mark selected item as done"
+    },
+    "schedule-items": {
+      "description": "Schedule items"
     }
   },
   "manifest_version": 3,
@@ -65,7 +68,7 @@
     "notifications",
     "storage"
   ],
-  "host_permissions": ["https://script.googleapis.com/*"],
+  "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
       "matches": ["https://docs.google.com/spreadsheets/*"],

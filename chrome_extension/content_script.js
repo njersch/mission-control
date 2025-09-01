@@ -160,5 +160,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'mark_item_done') {
     markItemAsDone(message.completedColumn);
     sendResponse({ success: true });
+  } else if (message.action === 'show_error') {
+    alert(message.error);
+    sendResponse({ success: true });
   }
 });

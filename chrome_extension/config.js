@@ -27,5 +27,8 @@ export const TAG_PRIORITY = 'prio';
 export const TAG_DATE = 'when';
 export const TAG_SCHEDULE = 'calendar';
 
+// Deployment URL of script to which a POST request can be made to schedule items.
+export const WEB_APP_DEPLOYMENT_URL = '';
+
 // Key for developer metadata to mark an item as automatically schedulable
-export const SILENTLY_SCHEDULABLE_DEVELOPER_META_DATA_KEY = 'silently_schedulable';
+export const AUTOMATICALLY_SCHEDULABLE_DEVELOPER_METADATA_KEY = 'automatically_schedulable';

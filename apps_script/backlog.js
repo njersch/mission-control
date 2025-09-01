@@ -94,7 +94,7 @@ class Backlog {
     this.installUniqueTriggerIfNeeded(importFromInbox, (builder) => {
       return builder.timeBased().everyMinutes(BacklogConfig.INBOX_IMPORT_INTERVAL);
     });
-    this.installUniqueTriggerIfNeeded(scheduleEventsSilently, (builder) => {
+    this.installUniqueTriggerIfNeeded(scheduleAutomaticallySchedulableEventsSilently, (builder) => {
       return builder.timeBased().everyMinutes(BacklogConfig.SCHEDULE_EVENTS_INTERVAL);
     });
     this.installUniqueTriggerIfNeeded(scheduleRecurringBacklogItems, (builder) => {
@@ -748,87 +748,111 @@ class Backlog {
 
   /**
    * Parses input in scheduling column and creates an event for each input value.
+   * Returns true if no errors occurred.
    */
-  static scheduleEvents(loudly) {
+  static scheduleEvents(automaticallySchedulableOnly, showErrors) {
 
-    const sheet = this.getBacklogSheet();
+    let hasErrors = false;
 
-    // Array with all events to schedule
-    const eventsToSchedule = [];
-    const titleKey = 'title';
-    const lengthKey = 'length';
-    const dateKey = 'date';
-    const tagKey = 'tag';
-    const silentMetadataKey = 'silentMetadata';
+    // Run code with lock to prevent interference with operations that alter the order of rows,
+    // and to prevent scheduling events multiple times.
+    this.doWithLock(() => {
 
-    // Collect events to schedule but don't schedule them yet. Instead, we first process
-    // all rows and tag them. This is done, so we can retrieve and update the correct row later,
-    // even if the row has been moved in the meantime.
-    for (const [row, value] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_SCHEDULED_TIME)) {
+      const sheet = this.getBacklogSheet();
 
-      const event = {};
+      // Array with all events to schedule
+      const eventsToSchedule = [];
+      const titleKey = 'title';
+      const lengthKey = 'length';
+      const dateKey = 'date';
+      const tagKey = 'tag';
+      const automaticallySchedulableMetadataKey = 'automaticallySchedulableMetadata';
 
-      // Determine and validate length.
-      const length = Number.parseInt(value.toString());
-      if (Number.isNaN(length)) {
-        if (loudly) {
-          const ui = SpreadsheetApp.getUi();
-          ui.alert('Invalid input', 'Enter time in minutes (for example "30")', ui.ButtonSet.OK);
+      // Collect events to schedule but don't schedule them yet. Instead, we first process
+      // all rows and tag them. This is done, so we can retrieve and update the correct row later,
+      // even if the row has been moved in the meantime.
+      for (const [row, value] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_SCHEDULED_TIME)) {
+
+        const event = {};
+
+        // Determine and validate length.
+        const length = Number.parseInt(value.toString());
+        if (Number.isNaN(length)) {
+          if (showErrors) {
+            const ui = SpreadsheetApp.getUi();
+            ui.alert('Invalid input', 'Enter time in minutes (for example "30")', ui.ButtonSet.OK);
+          }
+          hasErrors = true;
+          return;
         }
-        return;
-      }
-      event[lengthKey] = length;
+        event[lengthKey] = length;
 
-      // Retrieve metadata for silent scheduling.
-      const silentMetadata = this.getDeveloperMetadata(sheet, row, BacklogConfig.SILENTLY_SCHEDULABLE_DEVELOPER_METADATA_KEY);
-      event[silentMetadataKey] = silentMetadata;
-      
-      // If scheduling silently, only schedule items that have been marked as silently schedulable.
-      if (!loudly && !silentMetadata) {
+        // Retrieve metadata for automatic scheduling.
+        const automaticallySchedulableMetadata = this.getDeveloperMetadata(
+          sheet,
+          row,
+          BacklogConfig.AUTOMATICALLY_SCHEDULABLE_DEVELOPER_METADATA_KEY
+        );
+        event[automaticallySchedulableMetadataKey] = automaticallySchedulableMetadata;
+        
+        // If desired, schedule only items that have been marked as automatically schedulable.
+        if (automaticallySchedulableOnly && !automaticallySchedulableMetadata) {
+            continue;
+        }
+
+        // Determine day on which to schedule event.
+        event[dateKey] = sheet.getRange(row, BacklogConfig.COLUMN_WAITING).getValue() || new Date();
+
+        // Determine title.
+        let title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
+        const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
+        if (project) {
+          title = `${title} (${project})`;
+        }
+        event[titleKey] = title;
+
+        // Create tag and immediately set it on row.
+        const tag = Scheduler.newEventTag();
+        this.setDeveloperMetadata(sheet, row, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY, tag);
+        event[tagKey] = tag;
+
+        // Add event to list.
+        eventsToSchedule.push(event);
+      }
+
+      // Schedule events.
+      for (const event of eventsToSchedule) {
+
+        const {
+          [titleKey]: title,
+          [lengthKey]: length,
+          [dateKey]: date,
+          [tagKey]: tag,
+          [automaticallySchedulableMetadataKey]: automaticallySchedulableMetadata
+        } = event;
+        
+        const success = Scheduler.tryScheduleEvent(tag, title, length, date);
+
+        if (!success) {
+          if (showErrors) {
+            const ui = SpreadsheetApp.getUi();
+            ui.alert('Not enough time', `There is not enough free time in your calendar to schedule "${title}".`, ui.ButtonSet.OK);
+          }
+          hasErrors = true;
           continue;
-      }
-
-      // Determine day on which to schedule event.
-      event[dateKey] = sheet.getRange(row, BacklogConfig.COLUMN_WAITING).getValue() || new Date();
-
-      // Determine title.
-      let title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
-      const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
-      if (project) {
-        title = `${title} (${project})`;
-      }
-      event[titleKey] = title;
-
-      // Create tag and immediately set it on row.
-      const tag = Scheduler.newEventTag();
-      this.setDeveloperMetadata(sheet, row, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY, tag);
-      event[tagKey] = tag;
-
-      // Add event to list.
-      eventsToSchedule.push(event);
-    }
-
-    // Schedule events.
-    for (const {title, length, date, tag, silentMetadata} of eventsToSchedule) {
-      
-      const success = Scheduler.tryScheduleEvent(tag, title, length, date);
-
-      if (!success) {
-        if (loudly) {
-          const ui = SpreadsheetApp.getUi();
-          ui.alert('Not enough time', `There is not enough free time in your calendar to schedule "${title}".`, ui.ButtonSet.OK);
         }
-        continue;
-      }
 
-      // Mark event as scheduled. The row is retrieved by tag to avoid interference from any row
-      // changes that may have occurred in the meantime.
-      const row = this.findRowByEventTag(tag);
-      if (row) {
-        sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
+        // Mark event as scheduled. The row is retrieved by tag to avoid interference from any row
+        // changes that may have occurred in the meantime.
+        const row = this.findRowByEventTag(tag);
+        if (row) {
+          sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
+        }
+        automaticallySchedulableMetadata?.remove();
       }
-      silentMetadata?.remove();
-    }
+    });
+
+    return !hasErrors;
   }
 
 

@@ -66,6 +66,33 @@ export async function markSelectedItemAsDone() {
 
 
 /**
+ * Schedules items.
+ */
+export async function scheduleItems() {
+  const activeTab = await getActiveTabIfBacklogSheet();
+  if (!activeTab) {
+    return;
+  }
+  try {
+    let response;
+    try {
+      response = await fetch(config.WEB_APP_DEPLOYMENT_URL, { method: 'POST' });
+    } catch (error) {
+      console.error('POST request failed with error:', error);
+      throw new Error('Could not schedule items. Please check if the script is deployed correctly.');
+    }
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error('Some items could not be scheduled.');
+    }
+  } catch (error) {
+    const message = { action: 'show_error', error: error.message };
+    chrome.tabs.sendMessage(activeTab.id, message);
+  }
+}
+
+
+/**
  * Returns hash parameters from a URL. Hash parameters are key-value pairs separated by ampersands,
  * e.g. #gid=0&fvid=123.
  * @param {string} url URL
