@@ -73,19 +73,34 @@ export async function scheduleItems() {
   if (!activeTab) {
     return;
   }
+
   try {
-    let response;
+    let success = false;
+    
+    // Make POST request and parse response.
     try {
-      response = await fetch(config.WEB_APP_DEPLOYMENT_URL, { method: 'POST' });
+
+      // Make POST request.
+      const response = await fetch(config.WEB_APP_DEPLOYMENT_URL, { method: 'POST' });;
+      if (!response.ok) throw new Error('Failed to make POST request.');
+
+      // Parse response.
+      const data = await response.json();
+      success = data.success || false;
+
     } catch (error) {
-      console.error('POST request failed with error:', error);
+      console.error('Failed to make POST request or parse response:', error);
       throw new Error('Could not schedule items. Please check if the script is deployed correctly.');
     }
-    const data = await response.json();
-    if (!data.success) {
+
+    // Throw error if request was successful but some items could not be scheduled.
+    if (!success) {
       throw new Error('Some items could not be scheduled.');
     }
+    
   } catch (error) {
+
+    // Show error to user.
     const message = { action: 'show_error', error: error.message };
     chrome.tabs.sendMessage(activeTab.id, message);
   }
