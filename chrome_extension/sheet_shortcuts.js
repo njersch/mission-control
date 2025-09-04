@@ -140,6 +140,12 @@ async function getActiveTabIfBacklogSheet() {
     return null;
   }
 
+  // Check if current spreadsheet is the backlog spreadsheet.
+  const segments = activeTab.url.split('/');
+  if (segments.indexOf(config.SPREADSHEET_ID) < 0) {
+    return null;
+  }
+
   // Check if current sheet is the backlog sheet.
   const hashParams = getHashParams(activeTab.url);
   if (hashParams[SHEET_HASH_PARAM_KEY] !== config.BACKLOG_SHEET_ID.toString()) {
