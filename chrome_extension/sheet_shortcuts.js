@@ -1,4 +1,5 @@
 import * as config from './config.js';
+import * as notifications from './notifications.js';
 
 
 /** Key for sheet ID in URL's hash parameters. */
@@ -74,6 +75,15 @@ export async function scheduleItems() {
     return;
   }
 
+  // Show notification to indicate that items are being scheduled.
+  // Use static notification ID to avoid duplicate notifications.
+  const notificationId = 'schedule-items';
+  notifications.showNotification({
+    message: 'Scheduling items…',
+    notificationId: notificationId
+  });
+
+  // Schedule items, and show error if unsuccessful.
   try {
     let success = false;
     
@@ -103,6 +113,9 @@ export async function scheduleItems() {
     // Show error to user.
     const message = { action: 'show_error', error: error.message };
     chrome.tabs.sendMessage(activeTab.id, message);
+
+  } finally {
+    notifications.clearNotification(notificationId);
   }
 }
 

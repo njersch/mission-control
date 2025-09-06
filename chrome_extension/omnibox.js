@@ -1,4 +1,5 @@
 import * as config from './config.js';
+import * as notifications from './notifications.js';
 
 
 /** Storage key for cached project names */
@@ -397,14 +398,7 @@ function insertItem(input) {
     .then(() => {
       const { text: renderedTitle } = parseMarkdown(title);
       console.log(`Item added: "${renderedTitle}"`);
-      chrome.notifications.create(null, {
-        type: 'basic',
-        iconUrl: 'icon128.png',
-        title: 'Item added',
-        message: renderedTitle,
-        eventTime: Date.now() + 2000,
-        priority: 1
-      });
+      notifications.showNotification({ message: `Item added: ${renderedTitle}` });
     })
     .catch((error) => {
       console.error(error);
