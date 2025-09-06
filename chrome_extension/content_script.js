@@ -2,41 +2,61 @@
  * Marks the currently selected or focused item as done.
  * The caller must have already checked that the current tab shows the backlog sheet.
  */
-function markItemAsDone(completedColumn) {
+async function markItemsAsDone(completedColumn) {
 
   let cellIndex = getCurrentCellIndex();
   if (!cellIndex) {
     return;
   }
 
-  // Split cell index into column and row.
-  cellIndex = splitCellIndex(cellIndex);
-  if (!cellIndex) {
+  // Parse cell index.
+  const { start, end } = parseCellIndex(cellIndex);
+  if (!start || !end) {
     return;
   }
 
-  // Ignore header row.
-  if (cellIndex.row < 2) {
-    return;
-  }
+  // For each row in the range, mark item as done.
+  for (let row = start.row; row <= end.row; row++) {
 
-  // Mark to-do as done.
-  setCellValue(`${completedColumn}${cellIndex.row}`, true, false);
+    // Ignore header row.
+    if (row < 2) {
+      continue;
+    }
+
+    // Mark item as done.
+    await setCellValue(`${completedColumn}${row}`, true, false);
+  }
 }
 
 
 /**
- * Splits a cell index into column and row.
- * @param {string} cellIndex The cell index to split (e.g., "A1").
- * @returns {object} The column and row (e.g., { column: "A", row: 1 }) or null if the cell index
- * is invalid.
+ * Parses a cell index or range into column and row objects.
+ * Handles single cell (e.g., "A1") or range (e.g., "A1:B2").
+ * 
+ * @param {string} cellIndex The cell index or range to parse.
+ * @returns {object} `{ start: { column, row }, end: { column, row } }`, or null if invalid.
  */
-function splitCellIndex(cellIndex) {
-  const match = cellIndex.match(/^([A-Z]+)(\d+)$/);
-  if (!match) {
-    return null;
+function parseCellIndex(cellIndex) {
+  
+  // Handle range references like "A1:B2".
+  const rangeMatch = cellIndex.match(/^(?<startCol>[A-Z]+)(?<startRow>\d+):(?<endCol>[A-Z]+)(?<endRow>\d+)$/);
+  if (rangeMatch && rangeMatch.groups) {
+    return {
+      start: { column: rangeMatch.groups.startCol, row: parseInt(rangeMatch.groups.startRow) },
+      end: { column: rangeMatch.groups.endCol, row: parseInt(rangeMatch.groups.endRow) }
+    };
   }
-  return { column: match[1], row: parseInt(match[2]) };
+
+  // Handle single cell like "A1".
+  const cellMatch = cellIndex.match(/^(?<col>[A-Z]+)(?<row>\d+)$/);
+  if (cellMatch && cellMatch.groups) {
+    const cell = { column: cellMatch.groups.col, row: parseInt(cellMatch.groups.row) };
+    return {
+      start: cell,
+      end: cell
+    };
+  }
+  return null;
 }
 
 
@@ -156,9 +176,9 @@ async function simulateValueSet(value) {
 
 
 // Listen for messages from the background script.
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'mark_item_done') {
-    markItemAsDone(message.completedColumn);
+    await markItemsAsDone(message.completedColumn);
     sendResponse({ success: true });
   } else if (message.action === 'show_error') {
     alert(message.error);
