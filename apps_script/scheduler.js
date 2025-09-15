@@ -28,7 +28,8 @@ class Scheduler {
 
 
   /**
-   * Returns a date object corresponding the start of day as specified by SchedulerConfig.DAY_START.
+   * Returns a date object corresponding the start of day
+   * as defined by `SchedulerConfig.DAY_START`.
    */
   static getStartOfDay(day) {
     const startOfDayHours = Math.floor(SchedulerConfig.DAY_START);
@@ -40,6 +41,8 @@ class Scheduler {
 
   /**
    * Returns a slot index corresponding to given date object.
+   * A slot index is the number of slots since the start of the day,
+   * as defined by `SchedulerConfig.DAY_START` and `SchedulerConfig.SLOT_LENGTH`.
    */
   static getSlotIndex(date, rounder=Math.round) {
     
@@ -71,7 +74,7 @@ class Scheduler {
 
     // Determine first slot on given day that hasn't yet begun
     const isToday = this.getStartOfDay(new Date()).getTime() === this.getStartOfDay(day).getTime();
-    const firstNotStartedSlot = isToday ? this.getSlotIndex(day, Math.ceil) : 0;
+    const firstNotStartedSlot = isToday ? Math.max(0, this.getSlotIndex(day, Math.ceil)) : 0;
 
     // Find first possible start time
     const neededSlots = Math.ceil(length / SchedulerConfig.SLOT_LENGTH);
