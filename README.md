@@ -14,9 +14,8 @@ To get started, copy and configure the files below. Don't worry, that shouldn't 
 
 1. Make a copy of [this spreadsheet](https://docs.google.com/spreadsheets/d/1T5oizbxcr-_fVzoKcx92o2PO_DikLpdj8o8_cv7lvPc/edit?usp=sharing&resourcekey=0-aHUjSv69rN8c3A76sPSxDA) with the Google Account that you'd like to use.
 2. Open the spreadsheet and go to `Extensions` > `Apps Script`.
-2. Go to `Project Settings` and make sure the correct timezone is selected in your project settings.
+2. Go to `Project Settings` and make sure the correct time zone is selected in your project settings.
 2. Go to `Editor` and copy each `.js` file from the `apps_script` folder in this repository, including the `config` folder, into your new Apps Script project as a `.gs` file. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to create an Apps Script project and push the files to your project.
-
 2. Select `Editor`. Then, next to `Services`, click `+` and add the [`Google Calendar API`](https://developers.google.com/apps-script/advanced/calendar).
 2. Reload the spreadsheet, open the `Custom` menu at the top and click `Install triggers if needed`. This will install Apps Script triggers to keep your backlog up to date in the background.
 
@@ -30,7 +29,7 @@ To quickly open your to-do list and add items from Chrome's address bar, also in
 1. Download the `chrome_extension` folder to your computer. If you like, you can rename the folder to something else.
 2. Open `config.js`.
 2. Replace the value of `SPREADSHEET_ID` with the ID of the spreadsheet you created above. You can find the ID in the URL of your spreadsheet: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
-2. Replace the value `WEB_APP_DEPLOYMENT_URL` with the URL to a [web app](https://developers.google.com/apps-script/guides/web) deployment of the Apps Script project above.
+2. Replace the value of `WEB_APP_DEPLOYMENT_URL` with the URL to a [web app](https://developers.google.com/apps-script/guides/web) deployment of the Apps Script project above.
 2. Open `manifest.json`.
 2. Replace the value of `"client_id"` under `"oauth2"` with a valid [Google Cloud Platform OAuth client ID](https://developer.chrome.com/docs/extensions/mv3/tut_oauth/#oauth_client) that grants you access to the Google Sheets API (read and write access).
 2. Open Chrome and go to `chrome://extensions`.
@@ -40,18 +39,16 @@ To quickly open your to-do list and add items from Chrome's address bar, also in
 
 ## Using Mission Control
 
-### Open your backlog from anywhere in Chrome
+### Open your backlog
 
 To quickly access your backlog while in Chrome, hit `Ctrl + M` (for **M**ission Control) and your backlog will open in a new pinned tab. If your backlog is already open, Chrome will navigate to the existing tab.
 
-![Open backlog from anywhere](./assets/open_backlog.png)
-
 Similarly, you can quickly open your Gmail inbox with `Ctrl + I` and your calendar with `Ctrl + C` (Mac only).
 
-Go to `chrome://extensions/shortcuts` to make these shortcuts available from outside of Chrome.
+Go to `chrome://extensions/shortcuts` to change these shortcuts or make them available outside of Chrome.
 
 
-### Create a new to-do from anywhere in Chrome
+### Create a new to-do
 
 To create a new to-do from anywhere in Chrome, type `m` into the address bar and hit `SPACE` or `TAB`. Type in a title for your new to-do and hit `ENTER`. Chrome will add a new to-do to the top of your backlog.
 
@@ -63,12 +60,12 @@ You can enter additional information directly from the address bar:
 - Set a **priority** by entering `#prio:`, followed by the desired priority.
 - Set a **date** until which to snooze a to-do by entering `#when:`, followed by any of the expressions to snooze items [described below](#waiting-view). You can use `0` to set the status to `Next`.
 - **Block time** on your calendar by entering `#calendar:` followed by a duration in minutes. If used together with `#when:`, time will be blocked on the provided date.
-- **Add links** to the item's title in markdown format.
+- **Add links** to the item's title in markdown format, e.g. `[my link](www.example.com)`.
 
 
 ### Create a new to-do from your other devices
 
-If you're not on your computer, you can add to-dos to your backlog remotely. Just send an email with the title of your to-do as the subject line to your Gmail address with `+todo` added to your user name, for example max+todo@example.com. On iPhone, iPad and Mac, you can use this [Shortcut](https://www.icloud.com/shortcuts/48fe81eef76d41798784a928cc7fa6e0) to add to-dos with two simple taps.
+If you're not on your computer, you can add to-dos to your backlog remotely. Send an email with the title of your to-do as the subject line to your Gmail address with `+todo` added to your user name, for example max+todo@example.com. On iPhone, iPad and Mac, you can install this [Shortcut](https://www.icloud.com/shortcuts/44c0ff01b0a64377b22dcdd6592c26ec) to add to-dos with a few simple taps.
 
 
 ### Organise, view and snooze your to-dos
@@ -87,7 +84,7 @@ There are three views you should commonly use to browse and manage your to-dos:
 
 **"Waiting"** is your **view into the future** and contains only items with a `Waiting` status. You should move two types of items into this view: 1) Items that you need to keep an eye on but that are not yet actionable – for example when you're waiting for someone's response. 2) Items that you don't have the time or energy to deal with right now but you know roughly when it's time to take another look.
 
-To set an item's status to `Waiting`, enter a date in the `Wait until` column. The item will be **snoozed** and automatically show up again in your `Next` view on the chosen date. This helps you make sure you don't drop the ball something important while keeping your focus view ... well ... focused on just the things you really need to work on right now.
+To set an item's status to `Waiting`, enter a date in the `Wait until` column. The item will be **snoozed** and automatically show up again in your `Next` view on the chosen date. This helps you make sure you don't drop the ball on something important while keeping your focus view ... well ... focused on just the things you really need to work on right now.
  
 There are a few easy ways to snooze an item:
 
@@ -103,16 +100,12 @@ There are a few easy ways to snooze an item:
 
 #### Switch views via shortcuts
 
-While on the Mission Control sheet, you can switch views using your keyboard. Go to `chrome://extensions/shortcuts` to set up shortcuts.
+While on the Mission Control sheet, you can switch views using your keyboard. Go to `chrome://extensions/shortcuts` to set up these shortcuts.
 
 
-### Add recurring to-dos
+#### Mark to-do as done
 
-![Recurring to-dos](./assets/recurring.png)
-
-To create a new recurring to-do, open the 'Recurring' sheet and click on the plus icon in the first row and enter a title, a cadence and the remaining columns in whatever way you see fit.
-
-To integrate with other services, for example to remind you to read the emails you labelled in Gmail for later consumption on a quieter day, you can add **script-based recurring to-dos** that call your own Apps Script to generate a new to-do with a dynamic content. For that, you can add a new function to `apps_script/recurring.gs` and have it return `null` or an instance of `BacklogItem` as defined in `apps_script/backlog.gs`. Then place a valid JavaScript call of your custom function into the `Title` field, e.g. `functionThatReturnsARecurringToDo();`.
+To mark a to-do as done, click on the checkbox in the first column. You can also press `Cmd + .` (Mac) or `Ctrl + .` (Windows) to mark selected rows as done.
 
 
 ### Block time on your calendar
@@ -124,3 +117,12 @@ If you want to organise your day and block time on your calendar for your to-dos
 Mission Control will look for free slots on your calendar and create events for each to-do, so you can take control over your day and make sure you allocate enough time for everything you'd like to get done. Calendar events are private by default but will show up as "busy" in your calendar.
 
 If you move a scheduled event to a different time in the future, Mission Control will update the corresponding to-do accordingly.
+
+
+### Create recurring to-dos
+
+![Recurring to-dos](./assets/recurring.png)
+
+To create a recurring to-do, open the 'Recurring' sheet and click on the "+" icon in the first row. Then enter a title, a cadence and fill in the remaining columns as you see fit.
+
+To integrate with other services, for example to remind you to read the emails you labelled in Gmail for later consumption on a quieter day, you can add **script-based recurring to-dos** that call your own Apps Script to generate a new to-do with a dynamic content. Add a new function to `apps_script/recurring.gs` and have it return an instance of `BacklogItem` as defined in `apps_script/backlog.gs`. Then place a valid JavaScript call of your custom function into the `Title` field, e.g. `functionThatReturnsARecurringToDo();`.
