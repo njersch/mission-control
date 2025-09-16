@@ -428,7 +428,7 @@ function batchUpdateRequests(title,
   // Insert new row at the top
   requests.push({
     insertDimension: {
-      range: { sheetId: config.BACKLOG_SHEET_ID, dimension: "ROWS", startIndex: 1, endIndex: 2 },
+      range: { sheetId: config.BACKLOG_SHEET_ID, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
       inheritFromBefore: false
     }
   });
@@ -463,14 +463,14 @@ function batchUpdateRequests(title,
           location: {
             dimensionRange: {
               sheetId: config.BACKLOG_SHEET_ID,
-              dimension: "ROWS",
+              dimension: 'ROWS',
               startIndex: config.HEADER_ROWS,
               endIndex: config.HEADER_ROWS + 1
             }
           },
-          visibility: "DOCUMENT",
+          visibility: 'DOCUMENT',
           metadataKey: config.AUTOMATICALLY_SCHEDULABLE_DEVELOPER_METADATA_KEY,
-          metadataValue: "" // no value needed, key suffices
+          metadataValue: '' // no value needed, key suffices
         }
       }
     };
@@ -501,10 +501,10 @@ function writeValueUpdateRequest(columnIndex, value, numeric = false, links = nu
   let fields;
   const cellData = {};
   if (numeric) {
-    fields = "userEnteredValue";
+    fields = 'userEnteredValue';
     cellData.userEnteredValue = { numberValue: value };
   } else {
-    fields = "userEnteredValue,textFormatRuns";
+    fields = 'userEnteredValue,textFormatRuns';
     cellData.userEnteredValue = { stringValue: value };
 
     // Format links inside cell.

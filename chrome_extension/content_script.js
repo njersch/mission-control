@@ -75,7 +75,7 @@ function getCurrentCellValue() {
  * @returns {string} The index of the current cell (e.g., "A1", "B2").
  */
 function getCurrentCellIndex() {
-  const cellIndex = document.querySelector(".waffle-name-box").value;
+  const cellIndex = document.querySelector('.waffle-name-box').value;
   return cellIndex;
 }
 
@@ -85,18 +85,18 @@ function getCurrentCellIndex() {
  * @param {string|object} cellIndex - The index of the cell to set (e.g., "A1", "B2") or a JSON object { column, row }.
  */
 async function setCurrentCellIndex(cellIndex) {
-  const inputBox = document.querySelector(".waffle-name-box");
+  const inputBox = document.querySelector('.waffle-name-box');
 
-  if (typeof cellIndex === "string") {
+  if (typeof cellIndex === 'string') {
     inputBox.value = cellIndex;
-  } else if (typeof cellIndex === "object") {
-    const column = cellIndex.column || "";
-    const row = cellIndex.row || "";
+  } else if (typeof cellIndex === 'object') {
+    const column = cellIndex.column || '';
+    const row = cellIndex.row || '';
     inputBox.value = column + row;
   }
 
   // Trigger click event
-  const clickEvent = new MouseEvent("click", {
+  const clickEvent = new MouseEvent('click', {
     view: window,
     bubbles: true,
     cancelable: true,
@@ -104,9 +104,9 @@ async function setCurrentCellIndex(cellIndex) {
   inputBox.dispatchEvent(clickEvent);
 
   // Trigger enter key event
-  const enterEvent = new KeyboardEvent("keydown", {
-    key: "Enter",
-    code: "Enter",
+  const enterEvent = new KeyboardEvent('keydown', {
+    key: 'Enter',
+    code: 'Enter',
     keyCode: 13,
     view: window,
     bubbles: true,
