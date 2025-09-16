@@ -882,8 +882,12 @@ class Backlog {
 
   /**
    * Imports items from inbox sent to special email address (e.g. max+todo@example.com).
+   * Does nothing if inbox import is disabled.
    */
   static importFromInbox() {
+    if (!InboxImporterConfig.EMAIL_ADDRESS) {
+      return;
+    }
     InboxImporter.importFromInbox((title) => {
       const item = new BacklogItem(title, null, null, InboxImporterConfig.NOTES_TAG);
       this.insertBacklogItem(item);

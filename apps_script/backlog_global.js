@@ -72,9 +72,7 @@ function handleCalendarUpdates() {
  * Function to sync time zone with calendar. Globally callable, for example from a trigger.
  */
 function syncTimeZoneWithCalendar() {
-  if (TimeZonesConfig.CALENDAR_ID) {
-    TimeZones.syncWithCalendar();
-  }
+  TimeZones.syncWithCalendar();
 }
 
 

@@ -49,8 +49,12 @@ class TimeZones {
 
   /**
    * Syncs the time zone with the configured calendar.
+   * Does nothing if no calendar is configured.
    */
   static syncWithCalendar() {
+    if (!TimeZonesConfig.CALENDAR_ID) {
+      return;
+    }
     const calendar = CalendarApp.getCalendarById(TimeZonesConfig.CALENDAR_ID);
     const timeZone = calendar.getTimeZone();
     const properties = PropertiesService.getDocumentProperties();

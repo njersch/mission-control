@@ -1,7 +1,7 @@
 const InboxImporterConfig = {};
 
 // Email address (without suffix) that can be used to add items remotely
-// (e.g. max@example.com).
+// (e.g. max@example.com). Leave empty to disable inbox import.
 InboxImporterConfig.EMAIL_ADDRESS = '';
 
 // Suffix (e.g. "todo") of special email address  (e.g. max+todo@example.com)
