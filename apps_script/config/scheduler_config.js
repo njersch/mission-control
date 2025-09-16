@@ -1,9 +1,7 @@
 const SchedulerConfig = {};
 
 SchedulerConfig.CALENDAR_ID = '';
-
-// Timezone of spreadsheet, in terms of offset from UTC/GMT in ms
-SchedulerConfig.UTC_TIMEZONE_OFFSET = BacklogConfig.UTC_TIMEZONE_OFFSET; // in ms
+// ID of calendar to use for scheduling
 
 // Length of possible slots for scheduled events
 SchedulerConfig.SLOT_LENGTH = 15; // in minutes

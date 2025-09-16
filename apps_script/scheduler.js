@@ -34,9 +34,9 @@ class Scheduler {
   static getStartOfDay(day) {
     const startOfDayHours = Math.floor(SchedulerConfig.DAY_START);
     const startOfDayMinutes = Math.round((SchedulerConfig.DAY_START - startOfDayHours) * 60);
-    let startOfDay = new Date(day.getTime() + SchedulerConfig.UTC_TIMEZONE_OFFSET);
+    let startOfDay = TimeZones.convert(day, TimeZones.getCalendarTimeZone(), TimeZones.UTC());
     startOfDay.setUTCHours(startOfDayHours, startOfDayMinutes, 0, 0);
-    return new Date(startOfDay.getTime() - SchedulerConfig.UTC_TIMEZONE_OFFSET);
+    return TimeZones.convert(startOfDay, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
   }
 
   /**

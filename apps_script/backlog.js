@@ -106,6 +106,9 @@ class Backlog {
     this.installUniqueTriggerIfNeeded(handleCalendarUpdates, (builder) => {
       return builder.forUserCalendar(SchedulerConfig.CALENDAR_ID).onEventUpdated();
     });
+    this.installUniqueTriggerIfNeeded(syncTimeZoneWithCalendar, (builder) => {
+      return builder.timeBased().everyMinutes(TimeZonesConfig.SYNC_WITH_CALENDAR_INTERVAL);
+    });
   }
 
 
@@ -153,15 +156,25 @@ class Backlog {
         continue;
       }
 
-      // Set status and waiting date of corresponding backlog item according to event
+      
+      // Determine if earliest start date is today.
       const earliestStartDate = earliestEvent.getStartTime();
+      const calendarTimeZone = TimeZones.getCalendarTimeZone();
+      const earliestStartDateUTC = TimeZones.convert(earliestStartDate, calendarTimeZone, TimeZones.UTC());
+      const nowUTC = TimeZones.convert(now, calendarTimeZone, TimeZones.UTC());
+      const isToday = this.isSameUTCDate(earliestStartDateUTC, nowUTC);
+      
+      // Set status and waiting date of corresponding backlog item according to event.
       let waitingDate, status;
-      if (this.isSameDate(earliestStartDate, now)) {
+      if (isToday) {
         status = BacklogConfig.STATUS_NEXT;
         waitingDate = null;
       } else {
         status = BacklogConfig.STATUS_WAITING;
-        waitingDate = earliestStartDate;
+
+        // Convert waiting date to spreadsheet time zone.
+        const spreadsheetTimeZone = TimeZones.getSpreadsheetTimeZone();
+        waitingDate = TimeZones.convert(earliestStartDate, calendarTimeZone, spreadsheetTimeZone);
       }
       sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(status);
       sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setValue(waitingDate);
@@ -284,9 +297,10 @@ class Backlog {
     
     const sheet = this.getBacklogSheet();
     
-    // Find end of day
-    const endOfDay = new Date(Date.now() + BacklogConfig.UTC_TIMEZONE_OFFSET);
+    // Find end of day.
+    let endOfDay = TimeZones.convert(new Date(), TimeZones.getCalendarTimeZone(), TimeZones.UTC());
     endOfDay.setUTCHours(23, 59, 59, 999);
+    endOfDay = TimeZones.convert(endOfDay, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
 
     const updatedItemDescriptions = [];
 
@@ -294,7 +308,7 @@ class Backlog {
     for (const [row, waitingDate] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING)) {
 
       const isDate = waitingDate instanceof Date;
-      const isPastDate = isDate && waitingDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET <= endOfDay.getTime();
+      const isPastDate = isDate && waitingDate.getTime() <= endOfDay.getTime();
 
       // Clear waiting date if it is in the past.
       if (isPastDate) {
@@ -358,44 +372,43 @@ class Backlog {
     const originalValue = this.getBacklogSheet().getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
 
     // Determine the earliest possible date (tomorrow) in UTC.
-    const earliestPossibleDate = new Date(Date.now() + BacklogConfig.UTC_TIMEZONE_OFFSET);
-    earliestPossibleDate.setUTCDate(earliestPossibleDate.getUTCDate() + 1);
+    const earliestPossibleDateUTC = TimeZones.convert(new Date(), TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
+    earliestPossibleDateUTC.setUTCDate(earliestPossibleDateUTC.getUTCDate() + 1);
 
     // Converted date in UTC. Null if no conversion is needed.
-    let convertedDate = null;
+    let convertedDateUTC = null;
 
     // Increment year if value is a date in the past.
     if (originalValue instanceof Date && originalValue < Date.now()) {
       
-      convertedDate = new Date(originalValue.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET);
-      convertedDate.setUTCFullYear(convertedDate.getUTCFullYear() + 1);
+      convertedDateUTC = TimeZones.convert(originalValue, TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
+      convertedDateUTC.setUTCFullYear(convertedDateUTC.getUTCFullYear() + 1);
 
     // Attempt to parse integer-based shortcut (e.g. "10").
     } else if (/^[1-9][0-9]*$/.test(originalValue)) {
         
       // Add days
       const addDays = Number.parseInt(originalValue);
-      convertedDate = new Date(earliestPossibleDate);
-      convertedDate.setUTCDate(convertedDate.getUTCDate() + addDays - 1);
-    } 
+      convertedDateUTC = new Date(earliestPossibleDateUTC);
+      convertedDateUTC.setUTCDate(convertedDateUTC.getUTCDate() + addDays - 1);
     
-    else if (typeof originalValue === 'string') {
+    } else if (typeof originalValue === 'string') {
 
       // Attempt to parse shortcut (e.g. "Mon").
-      const incrementedDate = new Date(earliestPossibleDate);
-      if (this.tryIncrementDateToUTCDay(incrementedDate, originalValue)) {
-        convertedDate = incrementedDate;
+      const incrementedDateUTC = new Date(earliestPossibleDateUTC);
+      if (this.tryIncrementDateToUTCDay(incrementedDateUTC, originalValue)) {
+        convertedDateUTC = incrementedDateUTC;
       }
     }
 
-    if (convertedDate) {
+    if (convertedDateUTC) {
 
-      // Convert back to spreadsheet timezone.
-      convertedDate = new Date(convertedDate.getTime() - BacklogConfig.UTC_TIMEZONE_OFFSET);
+      // Convert back to spreadsheet time zone.
+      const updatedDate = TimeZones.convert(convertedDateUTC, TimeZones.UTC(), TimeZones.getSpreadsheetTimeZone());
 
       // Update cell.
       const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
-      range.setValue(convertedDate);
+      range.setValue(updatedDate);
       range.setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
     }
   }
@@ -633,65 +646,65 @@ class Backlog {
     if (cadenceType === BacklogConfig.CADENCE_TYPE_MONTHLY) {
 
       // Find month
-      let date;
+      let dateUTC;
       let increment;
       if (lastDate == null) {
         // Go to next month
-        date = new Date(Date.now() + BacklogConfig.UTC_TIMEZONE_OFFSET);
+        dateUTC = TimeZones.convert(new Date(), TimeZones.getCalendarTimeZone(), TimeZones.UTC());
         increment = 1;
       } else {
         // Go given number months ahead of last date
-        date = new Date(lastDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET);
+        dateUTC = TimeZones.convert(lastDate, TimeZones.getCalendarTimeZone(), TimeZones.UTC());
         increment = cadenceFactor ? cadenceFactor : 0;
       }
 
       // Set to first day of month
-      date.setUTCDate(1);
-      date.setUTCHours(0, 0, 0);
+      dateUTC.setUTCDate(1);
+      dateUTC.setUTCHours(0, 0, 0);
 
       // Set month
-      date.setUTCMonth(date.getUTCMonth() + increment);
+      dateUTC.setUTCMonth(dateUTC.getUTCMonth() + increment);
 
       // Set day
       if (typeof day === 'string') {
-        if (!this.tryIncrementDateToUTCDay(date, day)) {
+        if (!this.tryIncrementDateToUTCDay(dateUTC, day)) {
           throw Error('Invalid day supplied.: ' + day);
         }
       } else {
-        const maxDate = new Date(date.getTime());
-        maxDate.setUTCMonth(maxDate.getUTCMonth() + 1);
-        maxDate.setUTCDate(0);
-        date.setUTCDate(Math.min(day, maxDate.getUTCDate()));
+        const maxDateUTC = new Date(dateUTC.getTime());
+        maxDateUTC.setUTCMonth(maxDateUTC.getUTCMonth() + 1);
+        maxDateUTC.setUTCDate(0);
+        dateUTC.setUTCDate(Math.min(day, maxDateUTC.getUTCDate()));
       }
       
-      // Return date, converted back to specified timezone
-      return new Date(date.getTime() - BacklogConfig.UTC_TIMEZONE_OFFSET);
+      // Return date, converted back to current time zone.
+      return TimeZones.convert(dateUTC, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
 
     } else if (cadenceType === BacklogConfig.CADENCE_TYPE_WEEKLY) {
       
-      let date;
+      let dateUTC;
       if (lastDate == null) {
-        date = new Date(Date.now() + BacklogConfig.UTC_TIMEZONE_OFFSET);
+        dateUTC = TimeZones.convert(new Date(), TimeZones.getCalendarTimeZone(), TimeZones.UTC());
       } else {
-        date = new Date(lastDate.getTime() + BacklogConfig.UTC_TIMEZONE_OFFSET);
-        date.setUTCDate(date.getUTCDate() + cadenceFactor*7);
+        dateUTC = TimeZones.convert(lastDate, TimeZones.getCalendarTimeZone(), TimeZones.UTC());
+        dateUTC.setUTCDate(dateUTC.getUTCDate() + cadenceFactor*7);
       }
 
       // Set to beginning of day
-      date.setUTCHours(0, 0, 0);
+      dateUTC.setUTCHours(0, 0, 0);
 
-      // Only accepts day shortcuts (e.g. "Mon") and increment
+      // Only accept day shortcuts (e.g. "Mon") and increment
       // to correct day of week
       if (typeof day == 'string') {
-        if (!this.tryIncrementDateToUTCDay(date, day)) {
+        if (!this.tryIncrementDateToUTCDay(dateUTC, day)) {
           throw Error('Invalid day supplied.: ' + day);
         }
       } else {
         throw Error('Invalid day supplied: ' + day);
       }
       
-      // Return date, converted back to specified timezone
-      return new Date(date.getTime() - BacklogConfig.UTC_TIMEZONE_OFFSET);
+      // Return date, converted back to calendar time zone.
+      return TimeZones.convert(dateUTC, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
 
     } else {
       throw Error('Invalid cadence type supplied: ' + day);
@@ -801,7 +814,18 @@ class Backlog {
         }
 
         // Determine day on which to schedule event.
-        event[dateKey] = sheet.getRange(row, BacklogConfig.COLUMN_WAITING).getValue() || new Date();
+        let date = sheet.getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
+        if (date) {
+          // Convert date from spreadsheet time zone to calendar time zone.
+          // When parsing the date string from the cell, Google Sheets uses the spreadsheet
+          // time zone, but we want the calendar time zone to be used instead.
+          const spreadsheetTimeZone = TimeZones.getSpreadsheetTimeZone();
+          date = TimeZones.convert(date, spreadsheetTimeZone, TimeZones.getCalendarTimeZone());
+        } else {
+          // If no date is provided, use today.
+          date = new Date();
+        }
+        event[dateKey] = date;
 
         // Determine title.
         let title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
@@ -830,7 +854,7 @@ class Backlog {
           [tagKey]: tag,
           [automaticallySchedulableMetadataKey]: automaticallySchedulableMetadata
         } = event;
-        
+
         const success = Scheduler.tryScheduleEvent(tag, title, length, date);
 
         if (!success) {
@@ -921,12 +945,12 @@ class Backlog {
 
 
   /**
-   * Returns true if two dates correspond to the same day.
+   * Returns true if two dates correspond to the same day in UTC.
    */
-  static isSameDate(date1, date2) {
-    return date1.getFullYear() === date2.getFullYear()
-        && date1.getMonth() === date2.getMonth()
-        && date1.getDate() === date2.getDate();
+  static isSameUTCDate(date1, date2) {
+    return date1.getUTCFullYear() === date2.getUTCFullYear()
+        && date1.getUTCMonth() === date2.getUTCMonth()
+        && date1.getUTCDate() === date2.getUTCDate();
   }
 
 

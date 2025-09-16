@@ -31,9 +31,6 @@ BacklogConfig.WAITING_DATE_FORMAT = 'ddd, M/d';
 // Hour after midnight at which to set due 'Waiting' items to 'Next'
 BacklogConfig.SET_WAITING_ITEMS_TO_NEXT_ITEMS_HOUR = 3;
 
-// Timezone of spreadsheet, in terms of offset from UTC/GMT in ms
-BacklogConfig.UTC_TIMEZONE_OFFSET = -new Date().getTimezoneOffset()*60*1000; // in ms
-
 // Refresh interval for importing items from the inbox
 BacklogConfig.INBOX_IMPORT_INTERVAL = 5; // in minutes
 

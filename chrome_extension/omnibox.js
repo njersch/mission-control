@@ -379,8 +379,9 @@ function insertItem(input) {
   } else if (daysFromNow > 0) {
     status = config.STATUS_WAITING;
 
-    // Format date as serial number, see https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption
-    // and use the beginning of the day at 00:00:00
+    // TODO: Use the calendar time zone instead of the spreadsheet time zone.
+    // Format date as serial number and use the beginning of the day at 00:00:00,
+    // see https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption.
     const today = new Date();
     date = 25569.0 + daysFromNow + Math.floor((today.getTime() - today.getTimezoneOffset() * 60 * 1000) / (1000 * 60 * 60 * 24));
   } else {

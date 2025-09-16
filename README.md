@@ -124,9 +124,3 @@ If you want to organise your day and block time on your calendar for your to-dos
 Mission Control will look for free slots on your calendar and create events for each to-do, so you can take control over your day and make sure you allocate enough time for everything you'd like to get done. Calendar events are private by default but will show up as "busy" in your calendar.
 
 If you move a scheduled event to a different time in the future, Mission Control will update the corresponding to-do accordingly.
-
-
-### Work from a different timezone
-
-If you are working from a different timezone than usually, make sure to update the script timezone accordingly as described in the [Getting Started](#getting-started) section.
-
