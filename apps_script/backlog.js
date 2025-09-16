@@ -117,68 +117,70 @@ class Backlog {
    */
   static handleCalendarUpdates() {
 
-    // Retrieve updated tags
+    // Retrieve updated tags.
     const tags = Scheduler.getUpdatedEventTags();
     if (tags.length === 0) {
         return;
     }
 
-    const sheet = this.getBacklogSheet();
+    this.doWithDocumentLock(() => {
 
-    for (const tag of tags) {
+      const sheet = this.getBacklogSheet();
 
-      // Retrieve row for tag
-      const row = this.findRowByEventTag(tag);
+      for (const tag of tags) {
 
-      // Skip if no backlog item is associated with event
-      if (row === null) {
-        console.error(`No backlog item found for event with tag ${tag}.`);
-        continue;
+        // Retrieve row for tag.
+        const row = this.findRowByEventTag(tag);
+
+        // Skip if no backlog item is associated with event.
+        if (row === null) {
+          console.error(`No backlog item found for event with tag ${tag}.`);
+          continue;
+        }
+
+        // Retrieve all metadata for row, including metadata corresponding to other tags.
+        // There may be multiple tags if a backlog item has been scheduled multiple times.
+        const allMetadata = this.getRowDeveloperMetadata(sheet, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY);
+        const metadataForRow = allMetadata.filter((metadata) => metadata.getLocation().getRow().getRowIndex() === row);
+
+        // Retrieve the earliest event for row, including events from now until 30 days in the future.
+        const now = new Date();
+        const end = new Date(now.getTime());
+        end.setDate(end.getDate() + 30);
+        const allEvents = metadataForRow
+            .map((metadata) => Scheduler.getEarliestEventWithTag(metadata.getValue(), now, end))
+            .filter((event) => event !== null)
+            .sort((a, b) => a.getStartTime() - b.getStartTime());
+        const earliestEvent = allEvents.length > 0 ? allEvents[0] : null;
+
+        if (!earliestEvent) {
+          console.error(`No event found for tag ${tag}.`);
+          continue;
+        }
+        
+        // Determine if earliest start date is today.
+        const earliestStartDate = earliestEvent.getStartTime();
+        const calendarTimeZone = TimeZones.getCalendarTimeZone();
+        const earliestStartDateUTC = TimeZones.convert(earliestStartDate, calendarTimeZone, TimeZones.UTC());
+        const nowUTC = TimeZones.convert(now, calendarTimeZone, TimeZones.UTC());
+        const isToday = this.isSameUTCDate(earliestStartDateUTC, nowUTC);
+        
+        // Set status and waiting date of corresponding backlog item according to event.
+        let waitingDate, status;
+        if (isToday) {
+          status = BacklogConfig.STATUS_NEXT;
+          waitingDate = null;
+        } else {
+          status = BacklogConfig.STATUS_WAITING;
+
+          // Convert waiting date to spreadsheet time zone.
+          const spreadsheetTimeZone = TimeZones.getSpreadsheetTimeZone();
+          waitingDate = TimeZones.convert(earliestStartDate, calendarTimeZone, spreadsheetTimeZone);
+        }
+        sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(status);
+        sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setValue(waitingDate);
       }
-
-      // Retrieve all metadata for row, including metadata corresponding to other tags.
-      // There may be multiple tags if a backlog item has been scheduled multiple times.
-      const allMetadata = this.getRowDeveloperMetadata(sheet, BacklogConfig.SCHEDULED_EVENT_TAG_METADATA_KEY);
-      const metadataForRow = allMetadata.filter((metadata) => metadata.getLocation().getRow().getRowIndex() === row);
-
-      // Retrieve the earliest event for row, including events from now until 30 days in the future
-      const now = new Date();
-      const end = new Date(now.getTime());
-      end.setDate(end.getDate() + 30);
-      const allEvents = metadataForRow
-          .map((metadata) => Scheduler.getEarliestEventWithTag(metadata.getValue(), now, end))
-          .filter((event) => event !== null)
-          .sort((a, b) => a.getStartTime() - b.getStartTime());
-      const earliestEvent = allEvents.length > 0 ? allEvents[0] : null;
-
-      if (!earliestEvent) {
-        console.error(`No event found for tag ${tag}.`);
-        continue;
-      }
-
-      
-      // Determine if earliest start date is today.
-      const earliestStartDate = earliestEvent.getStartTime();
-      const calendarTimeZone = TimeZones.getCalendarTimeZone();
-      const earliestStartDateUTC = TimeZones.convert(earliestStartDate, calendarTimeZone, TimeZones.UTC());
-      const nowUTC = TimeZones.convert(now, calendarTimeZone, TimeZones.UTC());
-      const isToday = this.isSameUTCDate(earliestStartDateUTC, nowUTC);
-      
-      // Set status and waiting date of corresponding backlog item according to event.
-      let waitingDate, status;
-      if (isToday) {
-        status = BacklogConfig.STATUS_NEXT;
-        waitingDate = null;
-      } else {
-        status = BacklogConfig.STATUS_WAITING;
-
-        // Convert waiting date to spreadsheet time zone.
-        const spreadsheetTimeZone = TimeZones.getSpreadsheetTimeZone();
-        waitingDate = TimeZones.convert(earliestStartDate, calendarTimeZone, spreadsheetTimeZone);
-      }
-      sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(status);
-      sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setValue(waitingDate);
-    }
+    });
   }
 
 
@@ -191,13 +193,13 @@ class Backlog {
     
     const functionName = f.name;
 
-    // Do nothing if trigger for given function is already installed
+    // Do nothing if trigger for given function is already installed.
     const functions = ScriptApp.getProjectTriggers().map(t => t.getHandlerFunction());
     if (functions.indexOf(functionName) >= 0) {
       return;
     }
 
-    // Install trigger
+    // Install trigger.
     const builder = ScriptApp.newTrigger(functionName);
     builderFunction(builder).create();
   }
@@ -236,18 +238,16 @@ class Backlog {
    * Inserts new item at the top.
    */
   static insertBacklogItem(item) {
-    
-    // Run code with lock to prevent interference with operations that alter the order of rows
-    this.doWithLock(() => {
+    this.doWithDocumentLock(() => {
 
-      // Insert row and format
+      // Insert row and format.
       const sheet = this.getBacklogSheet();
       const row = BacklogConfig.HEADER_ROWS + 1;
       sheet.insertRowBefore(row);
       sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
       sheet.getRange(row, BacklogConfig.COLUMN_TITLE).activate();
 
-      // Populate info, if provided
+      // Populate info, if provided.
       if (item != null) {
         sheet.getRange(row, BacklogConfig.COLUMN_TITLE).setValue(item.title);
         sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).setValue(item.project);
@@ -263,11 +263,13 @@ class Backlog {
    * Sets project ot the default one if the shortcut was entered.
    */
   static setDefaultProjectIfNeeded(sheet, row) {
-    const range = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT);
-    const project = range.getValue();
-    if (project === BacklogConfig.DEFAULT_PROJECT_SHORTCUT) {
-      range.setValue(BacklogConfig.DEFAULT_PROJECT);
-    } 
+    this.doWithDocumentLock(() => {
+      const range = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT);
+      const project = range.getValue();
+      if (project === BacklogConfig.DEFAULT_PROJECT_SHORTCUT) {
+        range.setValue(BacklogConfig.DEFAULT_PROJECT);
+      } 
+    });
   }
 
 
@@ -275,9 +277,7 @@ class Backlog {
    * Deletes completed items.
    */
   static deleteCompletedItems() {
-
-    // Run code with lock to prevent interference with operations that alter the order of rows
-    this.doWithLock(() => {
+    this.doWithDocumentLock(() => {
       this
         .getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_COMPLETED)
         .reverse()
@@ -294,51 +294,53 @@ class Backlog {
    * Sets status of waiting items that have become due to 'Next'.
    */
   static setWaitingItemsToNext() {
-    
-    const sheet = this.getBacklogSheet();
-    
-    // Find end of day.
-    let endOfDay = TimeZones.convert(new Date(), TimeZones.getCalendarTimeZone(), TimeZones.UTC());
-    endOfDay.setUTCHours(23, 59, 59, 999);
-    endOfDay = TimeZones.convert(endOfDay, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
+    this.doWithDocumentLock(() => {
 
-    const updatedItemDescriptions = [];
+      const sheet = this.getBacklogSheet();
+      
+      // Find end of day.
+      let endOfDay = TimeZones.convert(new Date(), TimeZones.getCalendarTimeZone(), TimeZones.UTC());
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      endOfDay = TimeZones.convert(endOfDay, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
 
-    // Iterate through all waiting dates.
-    for (const [row, waitingDate] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING)) {
+      const updatedItemDescriptions = [];
 
-      const isDate = waitingDate instanceof Date;
-      const isPastDate = isDate && waitingDate.getTime() <= endOfDay.getTime();
+      // Iterate through all waiting dates.
+      for (const [row, waitingDate] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING)) {
 
-      // Clear waiting date if it is in the past.
-      if (isPastDate) {
-        sheet.getRange(row, BacklogConfig.COLUMN_WAITING).clearContent();
-      }
+        const isDate = waitingDate instanceof Date;
+        const isPastDate = isDate && waitingDate.getTime() <= endOfDay.getTime();
 
-      // Set status to 'Next' if waiting date is in the past or not a date.
-      // Including non-date values allows user to spot and correct mistakes in waiting date.
-      if (isPastDate || !isDate) {
-        
-        const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
-        const status = statusRange.getValue();
-        if (status !== BacklogConfig.STATUS_NEXT) {
+        // Clear waiting date if it is in the past.
+        if (isPastDate) {
+          sheet.getRange(row, BacklogConfig.COLUMN_WAITING).clearContent();
+        }
 
-          // Set status to 'Next'.
-          const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
-          statusRange.setValue(BacklogConfig.STATUS_NEXT);
+        // Set status to 'Next' if waiting date is in the past or not a date.
+        // Including non-date values allows user to spot and correct mistakes in waiting date.
+        if (isPastDate || !isDate) {
           
-          // Mark item for later display to user.
-          const title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
-          const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
-          updatedItemDescriptions.push(`${title} (${project})`);
+          const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
+          const status = statusRange.getValue();
+          if (status !== BacklogConfig.STATUS_NEXT) {
+
+            // Set status to 'Next'.
+            const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
+            statusRange.setValue(BacklogConfig.STATUS_NEXT);
+            
+            // Mark item for later display to user.
+            const title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
+            const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
+            updatedItemDescriptions.push(`${title} (${project})`);
+          }
         }
       }
-    }
 
-    // Queue descriptions for later display to user.
-    if (updatedItemDescriptions.length > 0) {
-      this.queueNextItemDescriptions(updatedItemDescriptions);
-    }
+      // Queue descriptions for later display to user.
+      if (updatedItemDescriptions.length > 0) {
+        this.queueNextItemDescriptions(updatedItemDescriptions);
+      }
+    });
   }
 
 
@@ -576,10 +578,12 @@ class Backlog {
    * Inserts an empty recurring backlog item.
    */
   static insertRecurringItem() {
-    const row = BacklogConfig.RECURRING_HEADER_ROWS + 1;
-    const sheet = this.getRecurringBacklogSheet(row);
-    sheet.insertRowBefore(row);
-    sheet.setActiveRange(sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_TITLE));
+    this.doWithDocumentLock(() => {
+      const row = BacklogConfig.RECURRING_HEADER_ROWS + 1;
+      const sheet = this.getRecurringBacklogSheet(row);
+      sheet.insertRowBefore(row);
+      sheet.setActiveRange(sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_TITLE));
+    });
   }
 
 
@@ -716,46 +720,49 @@ class Backlog {
    * Creates backlog items for recurring items that are due.
    */
   static scheduleRecurringBacklogItems() {
-    const sheet = this.getRecurringBacklogSheet();
-    const lastRow = sheet.getLastRow();
-    for (let row = BacklogConfig.RECURRING_HEADER_ROWS + 1; row <= Math.min(lastRow, 1000); row++) {
+    this.doWithDocumentLock(() => {
 
-      // Read info
-      const cadenceFactor = this.getCadenceFactor(sheet, row);
-      const cadenceType = this.getCadenceType(sheet, row);
-      const day = this.getRecurringDay(sheet, row);
+      const sheet = this.getRecurringBacklogSheet();
+      const lastRow = sheet.getLastRow();
+      for (let row = BacklogConfig.RECURRING_HEADER_ROWS + 1; row <= Math.min(lastRow, 1000); row++) {
 
-      // Find next date on which to schedule item
-      let nextDate = this.getNextDate(sheet, row);
-      if (nextDate == null) {
-        nextDate = this.findNextDate(cadenceType, cadenceFactor, day, null);
-        this.setNextDate(sheet, row, nextDate);
-      }
+        // Read info
+        const cadenceFactor = this.getCadenceFactor(sheet, row);
+        const cadenceType = this.getCadenceType(sheet, row);
+        const day = this.getRecurringDay(sheet, row);
 
-      // Skip if next date has not yet come
-      const now = new Date();
-      if (now <= nextDate) {
-        continue;
-      }
+        // Find next date on which to schedule item
+        let nextDate = this.getNextDate(sheet, row);
+        if (nextDate == null) {
+          nextDate = this.findNextDate(cadenceType, cadenceFactor, day, null);
+          this.setNextDate(sheet, row, nextDate);
+        }
 
-      // Read item info from row
-      let item = this.getRecurringBacklogItem(sheet, row);
-
-      // If specified, run script to populate item
-      if (item.title != null && /^[a-zA-Z_]+[a-zA-Z_0-9]*\(\);$/.test(item.title)) {
-        item = eval(item.title);
-        if (item == null) {
+        // Skip if next date has not yet come
+        const now = new Date();
+        if (now <= nextDate) {
           continue;
         }
-      }
-      
-      // Insert item
-      this.insertBacklogItem(item);
 
-      // Update next date
-      nextDate = this.findNextDate(cadenceType, cadenceFactor, day, nextDate);
-      this.setNextDate(sheet, row, nextDate);
-    }
+        // Read item info from row
+        let item = this.getRecurringBacklogItem(sheet, row);
+
+        // If specified, run script to populate item
+        if (item.title != null && /^[a-zA-Z_]+[a-zA-Z_0-9]*\(\);$/.test(item.title)) {
+          item = eval(item.title);
+          if (item == null) {
+            continue;
+          }
+        }
+        
+        // Insert item
+        this.insertBacklogItem(item);
+
+        // Update next date
+        nextDate = this.findNextDate(cadenceType, cadenceFactor, day, nextDate);
+        this.setNextDate(sheet, row, nextDate);
+      }
+    });
   }
 
 
@@ -767,19 +774,17 @@ class Backlog {
 
     let hasErrors = false;
 
-    // Run code with lock to prevent interference with operations that alter the order of rows,
-    // and to prevent scheduling events multiple times.
-    this.doWithLock(() => {
+    // Array with all events to schedule.
+    const eventsToSchedule = [];
+    const titleKey = 'title';
+    const lengthKey = 'length';
+    const dateKey = 'date';
+    const tagKey = 'tag';
+    const automaticallySchedulableMetadataKey = 'automaticallySchedulableMetadata';
+
+    this.doWithDocumentLock(() => {
 
       const sheet = this.getBacklogSheet();
-
-      // Array with all events to schedule
-      const eventsToSchedule = [];
-      const titleKey = 'title';
-      const lengthKey = 'length';
-      const dateKey = 'date';
-      const tagKey = 'tag';
-      const automaticallySchedulableMetadataKey = 'automaticallySchedulableMetadata';
 
       // Collect events to schedule but don't schedule them yet. Instead, we first process
       // all rows and tag them. This is done, so we can retrieve and update the correct row later,
@@ -796,7 +801,7 @@ class Backlog {
             ui.alert('Invalid input', 'Enter time in minutes (for example "30")', ui.ButtonSet.OK);
           }
           hasErrors = true;
-          return;
+          continue;
         }
         event[lengthKey] = length;
 
@@ -843,38 +848,42 @@ class Backlog {
         // Add event to list.
         eventsToSchedule.push(event);
       }
+    });
 
-      // Schedule events.
-      for (const event of eventsToSchedule) {
+    // Schedule events.
+    for (const event of eventsToSchedule) {
 
-        const {
-          [titleKey]: title,
-          [lengthKey]: length,
-          [dateKey]: date,
-          [tagKey]: tag,
-          [automaticallySchedulableMetadataKey]: automaticallySchedulableMetadata
-        } = event;
+      const {
+        [titleKey]: title,
+        [lengthKey]: length,
+        [dateKey]: date,
+        [tagKey]: tag,
+        [automaticallySchedulableMetadataKey]: automaticallySchedulableMetadata
+      } = event;
 
-        const success = Scheduler.tryScheduleEvent(tag, title, length, date);
+      const success = Scheduler.tryScheduleEvent(tag, title, length, date);
 
-        if (!success) {
-          if (showErrors) {
-            const ui = SpreadsheetApp.getUi();
-            ui.alert('Not enough time', `There is not enough free time in your calendar to schedule "${title}".`, ui.ButtonSet.OK);
-          }
-          hasErrors = true;
-          continue;
+      if (!success) {
+        if (showErrors) {
+          const ui = SpreadsheetApp.getUi();
+          ui.alert('Not enough time', `There is not enough free time in your calendar to schedule "${title}".`, ui.ButtonSet.OK);
         }
+        hasErrors = true;
+        continue;
+      }
 
+      this.doWithDocumentLock(() => {
+        
         // Mark event as scheduled. The row is retrieved by tag to avoid interference from any row
         // changes that may have occurred in the meantime.
         const row = this.findRowByEventTag(tag);
         if (row) {
+          const sheet = this.getBacklogSheet();
           sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(null);
         }
         automaticallySchedulableMetadata?.remove();
-      }
-    });
+      });
+    }
 
     return !hasErrors;
   }
@@ -959,13 +968,16 @@ class Backlog {
 
 
   /**
-   * Performs the given function with a lock.
+   * Performs the given function with a document lock.
+   * This should be used for all operations that alter the order or content of rows or cells.
    */
-  static doWithLock(f) {
+  static doWithDocumentLock(f, timeout = 30*1000 /* 30 seconds */) {
     const lock = LockService.getDocumentLock();
+    lock.waitLock(timeout);
     try {
-      lock.waitLock(10*1000);
       f();
+    } catch (error) {
+      throw error;
     } finally {
       lock.releaseLock();
     }
