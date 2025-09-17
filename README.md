@@ -21,8 +21,13 @@ To get started, copy and configure the files below. Don't worry, that shouldn't 
 
 Next, configure the required Apps Script variables:
 
-1. Open `config/scheduler_config.gs` and set the value of `SchedulerConfig.CALENDAR_ID` to the ID of your Google calendar. This will allow you to easily [block time on your calendar](#block-time-on-your-calendar) for your to-dos. You can find the ID of your calendar in your calendar settings. If you want to use your main calendar, enter the email address of your Workspace account, for example max@example.com.
-2. Open `config/inbox_importer_config.gs` and set the value of `InboxImporterConfig.EMAIL_ADDRESS` to the email address of your Workspace account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
+1. Open the spreadsheet and go to `Extensions` > `Apps Script`.
+2. Go to `Project Settings`.
+2. Make sure the correct time zone is selected under `General settings`.
+2. Go to `Script Properties` at the bottom.
+2. Add a new property `SchedulerConfig.CALENDAR_ID` and set the value to the ID of your Google calendar. This will allow you to easily [block time on your calendar](#block-time-on-your-calendar) for your to-dos. You can find the ID of your calendar in your calendar settings. If you want to use your main calendar, enter the email address of your Workspace account, for example `max@example.com`.
+2. Add a new property `InboxImporterConfig.EMAIL_ADDRESS` set the value to the email address of your Gmail account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
+2. Optionally, override any of the default settings defined in `apps_scipt/config.js` by setting additional properties.
 
 To quickly open your to-do list and add items from Chrome's address bar, also install the 'Mission Control' Chrome extension:
 

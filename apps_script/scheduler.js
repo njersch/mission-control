@@ -225,7 +225,8 @@ class Scheduler {
     const description = event.description || event.getDescription();
 
     // Extract the tag from the description
-    const match = description && description.match(SchedulerConfig.TAG_REGEX);
+    const regex = new RegExp(`^${SchedulerConfig.TAG_PREFIX}[${SchedulerConfig.TAG_BASE}]{${SchedulerConfig.TAG_LENGTH}}$`);
+    const match = description && description.match(regex);
     return match ? match[0] : null;
   }
 
