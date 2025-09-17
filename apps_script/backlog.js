@@ -88,31 +88,6 @@ class Backlog {
 
 
   /**
-   * Installs all required triggers if not yet installed.
-   */
-  static installTriggersIfNeeded() {
-    this.installUniqueTriggerIfNeeded(importFromInbox, (builder) => {
-      return builder.timeBased().everyMinutes(BacklogConfig.INBOX_IMPORT_INTERVAL);
-    });
-    this.installUniqueTriggerIfNeeded(scheduleAutomaticallySchedulableEventsSilently, (builder) => {
-      return builder.timeBased().everyMinutes(BacklogConfig.SCHEDULE_EVENTS_INTERVAL);
-    });
-    this.installUniqueTriggerIfNeeded(scheduleRecurringBacklogItems, (builder) => {
-      return builder.timeBased().atHour(BacklogConfig.SCHEDULE_RECURRING_ITEMS_HOUR).everyDays(1);
-    });
-    this.installUniqueTriggerIfNeeded(setWaitingItemsToNext, (builder) => {
-      return builder.timeBased().atHour(BacklogConfig.SET_WAITING_ITEMS_TO_NEXT_ITEMS_HOUR).everyDays(1);
-    });
-    this.installUniqueTriggerIfNeeded(handleCalendarUpdates, (builder) => {
-      return builder.forUserCalendar(SchedulerConfig.CALENDAR_ID).onEventUpdated();
-    });
-    this.installUniqueTriggerIfNeeded(syncTimeZoneWithCalendar, (builder) => {
-      return builder.timeBased().everyMinutes(TimeZonesConfig.SYNC_WITH_CALENDAR_INTERVAL);
-    });
-  }
-
-
-  /**
    * Syncs backlog items with updated events in calendar.
    */
   static handleCalendarUpdates() {
@@ -181,27 +156,6 @@ class Backlog {
         sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setValue(waitingDate);
       }
     });
-  }
-
-
-  /**
-   * Installs a trigger for a given function if not yet installed. The passed builder function
-   * will be called with a fresh TriggerBuilder and needs to return a configured builder.
-   * It should not call create() on the builder itself.
-   */
-  static installUniqueTriggerIfNeeded(f, builderFunction) {
-    
-    const functionName = f.name;
-
-    // Do nothing if trigger for given function is already installed.
-    const functions = ScriptApp.getProjectTriggers().map(t => t.getHandlerFunction());
-    if (functions.indexOf(functionName) >= 0) {
-      return;
-    }
-
-    // Install trigger.
-    const builder = ScriptApp.newTrigger(functionName);
-    builderFunction(builder).create();
   }
 
 
