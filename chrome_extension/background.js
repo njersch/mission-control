@@ -1,4 +1,4 @@
-import * as config from './config.js';
+import config from './config.js';
 import * as omnibox from './omnibox.js';
 import * as tabShortcuts from './tab_shortcuts.js';
 import * as sheetShortcuts from './sheet_shortcuts.js';

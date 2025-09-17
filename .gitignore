@@ -1,3 +1,4 @@
-appsscript.json
-.clasp.json
 .vscode
+apps_script/appsscript.json
+apps_script/.clasp.json
+chrome_extension/config.local.js
