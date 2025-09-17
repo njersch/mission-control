@@ -184,14 +184,14 @@ class Backlog {
    * Inserts new empty item at the top.
    */
   static insertEmptyBacklogItem() {
-    this.insertBacklogItem(null);
+    this.insertBacklogItem(null, true);
   }
 
 
   /**
    * Inserts new item at the top.
    */
-  static insertBacklogItem(item) {
+  static insertBacklogItem(item, activate = false) {
     this.doWithDocumentLock(() => {
 
       // Insert row and format.
@@ -199,7 +199,6 @@ class Backlog {
       const row = BacklogConfig.HEADER_ROWS + 1;
       sheet.insertRowBefore(row);
       sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
-      sheet.getRange(row, BacklogConfig.COLUMN_TITLE).activate();
 
       // Populate info, if provided.
       if (item != null) {
@@ -208,6 +207,11 @@ class Backlog {
         sheet.getRange(row, BacklogConfig.COLUMN_PRIORITY).setValue(item.priority);
         sheet.getRange(row, BacklogConfig.COLUMN_NOTES).setValue(item.notes);
         sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(BacklogConfig.STATUS_NEXT);
+      }
+
+      // Activate title cell if desired.
+      if (activate) {
+        sheet.getRange(row, BacklogConfig.COLUMN_TITLE).activate();
       }
     });
   }
@@ -673,46 +677,51 @@ class Backlog {
   /**
    * Creates backlog items for recurring items that are due.
    */
-  static scheduleRecurringBacklogItems() {
+  static scheduleRecurringItems() {
+
     this.doWithDocumentLock(() => {
 
       const sheet = this.getRecurringBacklogSheet();
       const lastRow = sheet.getLastRow();
       for (let row = BacklogConfig.RECURRING_HEADER_ROWS + 1; row <= Math.min(lastRow, 1000); row++) {
 
-        // Read info
+        // Read info.
         const cadenceFactor = this.getCadenceFactor(sheet, row);
         const cadenceType = this.getCadenceType(sheet, row);
         const day = this.getRecurringDay(sheet, row);
 
-        // Find next date on which to schedule item
+        // Find next date on which to schedule item.
         let nextDate = this.getNextDate(sheet, row);
         if (nextDate == null) {
           nextDate = this.findNextDate(cadenceType, cadenceFactor, day, null);
           this.setNextDate(sheet, row, nextDate);
         }
 
-        // Skip if next date has not yet come
+        // Skip if next date has not yet come.
         const now = new Date();
         if (now <= nextDate) {
           continue;
         }
 
-        // Read item info from row
-        let item = this.getRecurringBacklogItem(sheet, row);
+        // Insert item if not paused.
+        if (!BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED) {
+          
+          // Read item info from row.
+          let item = this.getRecurringBacklogItem(sheet, row);
 
-        // If specified, run script to populate item
-        if (item.title != null && /^[a-zA-Z_]+[a-zA-Z_0-9]*\(\);$/.test(item.title)) {
-          item = eval(item.title);
-          if (item == null) {
-            continue;
+          // If specified, run script to populate item.
+          if (item.title != null && /^[a-zA-Z_]+[a-zA-Z_0-9]*\(\);$/.test(item.title)) {
+            item = eval(item.title);
+            if (item == null) {
+              continue;
+            }
           }
+          
+          // Insert item.
+          this.insertBacklogItem(item);
         }
-        
-        // Insert item
-        this.insertBacklogItem(item);
 
-        // Update next date
+        // Find and set date for next instance.
         nextDate = this.findNextDate(cadenceType, cadenceFactor, day, nextDate);
         this.setNextDate(sheet, row, nextDate);
       }

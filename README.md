@@ -131,3 +131,5 @@ If you move a scheduled event to a different time in the future, Mission Control
 To create a recurring to-do, open the 'Recurring' sheet and click on the "+" icon in the first row. Then enter a title, a cadence and fill in the remaining columns as you see fit.
 
 To integrate with other services, for example to remind you to read the emails you labelled in Gmail for later consumption on a quieter day, you can add **script-based recurring to-dos** that call your own Apps Script to generate a new to-do with a dynamic content. Add a new function to `apps_script/recurring.gs` and have it return an instance of `BacklogItem` as defined in `apps_script/backlog.gs`. Then place a valid JavaScript call of your custom function into the `Title` field, e.g. `functionThatReturnsARecurringToDo();`.
+
+You can temporarily pause all recurring to-dos by adding a script property `BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED` and setting it to `true`.

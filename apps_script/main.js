@@ -73,8 +73,8 @@ function insertRecurringItem() {
  * Function to create backlog items for recurring items that are due.
  * Globally callable, for example from a trigger.
  */
-function scheduleRecurringBacklogItems() {
-  Backlog.scheduleRecurringBacklogItems();
+function scheduleRecurringItems() {
+  Backlog.scheduleRecurringItems();
 }
 
 
@@ -159,7 +159,7 @@ function installTriggersIfNeeded() {
   installUniqueTriggerIfNeeded(scheduleAutomaticallySchedulableEventsSilently, (builder) => {
     return builder.timeBased().everyMinutes(BacklogConfig.SCHEDULE_EVENTS_INTERVAL);
   });
-  installUniqueTriggerIfNeeded(scheduleRecurringBacklogItems, (builder) => {
+  installUniqueTriggerIfNeeded(scheduleRecurringItems, (builder) => {
     return builder.timeBased().atHour(BacklogConfig.SCHEDULE_RECURRING_ITEMS_HOUR).everyDays(1);
   });
   installUniqueTriggerIfNeeded(setWaitingItemsToNext, (builder) => {

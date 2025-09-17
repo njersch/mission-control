@@ -115,6 +115,9 @@ const BacklogConfig = new Config('BacklogConfig', {
   // Refresh interval for scheduling items entered from the Omnibox
   SCHEDULE_EVENTS_INTERVAL: 1, // in minutes
 
+  // Whether to pause scheduling of recurring items
+  SCHEDULE_RECURRING_ITEMS_PAUSED: false,
+
   // Hour after midnight at which to schedule recurring items
   SCHEDULE_RECURRING_ITEMS_HOUR: 3,
 
