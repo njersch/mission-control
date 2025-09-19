@@ -58,10 +58,6 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "oauth2": {
-    "client_id": "",
-    "scopes":["https://www.googleapis.com/auth/spreadsheets"]
-  },
   "permissions": [
     "identity",
     "tabs",
