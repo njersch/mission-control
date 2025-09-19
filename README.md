@@ -14,12 +14,10 @@ To get started, copy and configure the files below. Don't worry, that shouldn't 
 
 1. Make a copy of [this spreadsheet](https://docs.google.com/spreadsheets/d/1T5oizbxcr-_fVzoKcx92o2PO_DikLpdj8o8_cv7lvPc/edit?usp=sharing&resourcekey=0-aHUjSv69rN8c3A76sPSxDA) with the Google Account that you'd like to use.
 2. Open the spreadsheet and go to `Extensions` > `Apps Script`.
-2. Go to `Project Settings` and make sure the correct time zone is selected in your project settings.
-2. Go to `Editor` and copy each `.js` file from the `apps_script` folder in this repository, including the `config` folder, into your new Apps Script project as a `.gs` file. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to create an Apps Script project and push the files to your project.
+2. Go to `Editor` and copy each `.js` file from the `apps_script` folder in this repository into your new Apps Script project as a `.gs` file. It's fine to rename files or change the folder hierarchy. Alternatively, you can use [clasp](https://github.com/google/clasp) to push the files to your project.
 2. Select `Editor`. Then, next to `Services`, click `+` and add the [`Google Calendar API`](https://developers.google.com/apps-script/advanced/calendar).
-2. Reload the spreadsheet, open the `Custom` menu at the top and click `Install triggers if needed`. This will install Apps Script triggers to keep your backlog up to date in the background.
 
-Next, configure the required Apps Script variables:
+Next, configure the required script variables:
 
 1. Open the spreadsheet and go to `Extensions` > `Apps Script`.
 2. Go to `Project Settings`.
@@ -28,12 +26,13 @@ Next, configure the required Apps Script variables:
 2. Add a new property `SchedulerConfig.CALENDAR_ID` and set the value to the ID of your Google calendar. This will allow you to easily [block time on your calendar](#block-time-on-your-calendar) for your to-dos. You can find the ID of your calendar in your calendar settings. If you want to use your main calendar, enter the email address of your Workspace account, for example `max@example.com`.
 2. Add a new property `InboxImporterConfig.EMAIL_ADDRESS` set the value to the email address of your Gmail account. This will allow you to [add to-dos remotely](#create-a-new-to-do-from-your-other-devices) by sending yourself an email.
 2. Optionally, override any of the default settings defined in `apps_scipt/config.js` by setting additional properties.
+2. Open the spreadsheet, open the `Custom` menu at the top and click `Install triggers if needed`. This will install Apps Script triggers to keep your backlog up to date in the background.
 
-To quickly open your to-do list and add items from Chrome's address bar, also install the 'Mission Control' Chrome extension:
+To quickly open your to-do list and add items from Chrome's address bar, also install the Chrome extension:
 
 1. Deploy the apps script project above as a [web app](https://developers.google.com/apps-script/guides/web#deploy_a_script_as_a_web_app). Make sure the web app is accessible only to you.
-2. Download the `chrome_extension` folder to your computer. If you like, you can rename the folder to something else.
-2. Open `config.js`.
+2. Download the `chrome_extension` folder in this repository to your computer. You can rename the folder to something else if you like.
+2. Open `config.local.js`.
 2. Replace the value of `WEB_APP_DEPLOYMENT_URL` with the URL to the deployment above.
 2. Replace the value of `SPREADSHEET_ID` with the ID of the spreadsheet you created above. You can find the ID in the URL of your spreadsheet: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
 2. Open Chrome and go to `chrome://extensions`.
