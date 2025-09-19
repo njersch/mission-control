@@ -1,5 +1,6 @@
 import config from './config.js';
 import * as notifications from './notifications.js';
+import * as webApp from './web_app.js';
 
 
 /** Storage key for cached project names */
@@ -83,7 +84,7 @@ function setCachedProjectNames(names) {
  * Updates cached project names asynchronously
  */
 async function updateCachedProjectNames() {
-  const projectNames = await makeWebAppRequest('GET', 'project-names');
+  const projectNames = await webApp.sendRequest('GET', 'project-names');
   setCachedProjectNames(projectNames);
 }
 
@@ -274,40 +275,24 @@ async function insertItem(input) {
     scheduledTime,
   };
   params = Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== undefined));
-  
-  // Make request.
-  await makeWebAppRequest('POST', 'create-backlog-item', params);
 
-  // Show notification.
-  const displayedTitle = title ? getDisplayedTitle(title) : title;  
-  notifications.showNotification({ message: `Item added: ${displayedTitle}` });
-}
-
-
-/**
- * Makes a request to the deployed web app.
- * @param {string} method HTTP method, "GET" or "POST"
- * @param {string} path Path, relative to the deployed web app URL
- * @param {Object} params Parameters
- * @returns {PromiseLike<Object>} Parsed response data
- */
-async function makeWebAppRequest(method, path, params = {}) {
-
-  // Make request.
-  const url = `${config.WEB_APP_DEPLOYMENT_URL}/${path}?${new URLSearchParams(params).toString()}`;
-  const response = await fetch(url, { method });
-
-  // Throw error if request failed.
-  if (!response.ok) {
-    throw new Error(await response.text());
+  // Make request and show notifications.
+  // Immediately show a notification for a more responsive UX.
+  // Update notification on success.
+  // Show a fresh error notification on failure.
+  const displayedTitle = title ? getDisplayedTitle(title) : title;
+  const notificationId = await notifications.showNotification({ message: `Adding item: ${displayedTitle}` });
+  try {
+    await webApp.sendRequest('POST', 'create-backlog-item', params);
+  } catch (error) {
+    notifications.showNotification({
+      message: `Error adding item: ${displayedTitle}`,
+      eventTime: Date.now() + 2 * 1000 // 2 seconds delay
+    });
+    notifications.clearNotification(notificationId);
+    throw error;
   }
-
-  // Parse response.
-  const data = await response.json();
-  if (!data.success) {
-    throw new Error('Failed to make request to web app: ' + data.error);
-  }
-  return data.data;
+  notifications.updateNotification({ notificationId, message: `Item added: ${displayedTitle}` });
 }
 
 

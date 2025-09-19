@@ -41,10 +41,9 @@ const getWebApp = () => {
   webApp.on(WebApp.RequestType.POST, '/schedule-events', (_) => {
     // Schedule all events automatically, but without showing errors.
     const success = Backlog.scheduleEvents(false, false);
-
-    // Respond with success if the shortcut was executed,
-    // but supply an error message if scheduling failed.
-    return success ? undefined : 'Could not schedule events.';
+    if (!success) {
+      throw new Error('Some items could not be scheduled.');
+    }
   });
 
   return webApp;
