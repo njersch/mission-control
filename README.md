@@ -31,12 +31,11 @@ Next, configure the required Apps Script variables:
 
 To quickly open your to-do list and add items from Chrome's address bar, also install the 'Mission Control' Chrome extension:
 
-1. Download the `chrome_extension` folder to your computer. If you like, you can rename the folder to something else.
+1. Deploy the apps script project above as a [web app](https://developers.google.com/apps-script/guides/web#deploy_a_script_as_a_web_app). Make sure the web app is accessible only to you.
+2. Download the `chrome_extension` folder to your computer. If you like, you can rename the folder to something else.
 2. Open `config.js`.
+2. Replace the value of `WEB_APP_DEPLOYMENT_URL` with the URL to the deployment above.
 2. Replace the value of `SPREADSHEET_ID` with the ID of the spreadsheet you created above. You can find the ID in the URL of your spreadsheet: `https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit`
-2. Replace the value of `WEB_APP_DEPLOYMENT_URL` with the URL to a [web app](https://developers.google.com/apps-script/guides/web) deployment of the Apps Script project above.
-2. Open `manifest.json`.
-2. Replace the value of `"client_id"` under `"oauth2"` with a valid [Google Cloud Platform OAuth client ID](https://developer.chrome.com/docs/extensions/mv3/tut_oauth/#oauth_client) that grants you access to the Google Sheets API (read and write access).
 2. Open Chrome and go to `chrome://extensions`.
 2. Turn on "Developer mode" in the top right corner.
 2. Click "Load unpacked" and select the `chrome_extension` folder you downloaded earlier.

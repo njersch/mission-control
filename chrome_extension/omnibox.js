@@ -10,10 +10,6 @@ const PROJECT_NAMES_KEY = 'project_names';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 
-/** Base URL for Google Sheets API */
-const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
-
-
 /** Tags and corresponding suggestions */
 const TAGS = [
   {
@@ -86,28 +82,9 @@ function setCachedProjectNames(names) {
 /**
  * Updates cached project names asynchronously
  */
-function updateCachedProjectNames() {
-  const range = `R${1 + config.HEADER_ROWS}C${config.PROJECT_COLUMN}:C${config.PROJECT_COLUMN}`; // in R1C1 notation
-  const url = `${SHEETS_API}/${config.SPREADSHEET_ID}/values/${range}?majorDimension=COLUMNS`;
-  sendRequest('GET', url)
-    .then((response) => response.json())
-    .then(({ values }) => {
-      let projectNames = values ? values[0] : [];
-
-      // Trim whitespace and filter out empty values
-      projectNames = projectNames
-        .map((name) => name.trim())
-        .filter((name) => name.length > 0);
-
-      // Remove duplicates
-      projectNames = [...new Set(projectNames)]
-
-      // Cache names
-      setCachedProjectNames(projectNames);
-    })
-    .catch((error) => {
-      console.error(error);
-    });
+async function updateCachedProjectNames() {
+  const projectNames = await makeWebAppRequest('GET', 'project-names');
+  setCachedProjectNames(projectNames);
 }
 
 
@@ -147,72 +124,6 @@ function parseInput(input) {
     title,
     tags
   };
-}
-
-
-/**
- * Parses user-entered value for date tag and finds corresponding date
- * @param {string} value User-entered value for date tag
- * @returns {int} Number of days after current date. If no valid value is provided, -1 is returned.
- */
-function parseDateValue(value) {
-
-  if (value == null) {
-    return -1;
-  }
-
-  // Split suffix with weeks to add (e.g. "3") from provided value (e.g. "Mon+3")
-  const regex = /^([A-Za-z]+)\+(\d+)$/;
-  const match = value.match(regex);
-  value = match ? match[1] : value;
-  const weeksToAdd = match ? Number.parseInt(match[2]) : 0;
-
-  // Parse non-negative integer value
-  if (/^[0-9]+$/.test(value)) {
-    return parseInt(value);
-  }
-
-  // Parse shortcuts like “Monday” or “mon” and determine day of week
-  const dayOfWeek = DAY_NAMES.findIndex((day) => {
-    const lowerDay = day.toLowerCase();
-    const lowerValue = value.toLowerCase();
-    return lowerValue.length === 3 && lowerDay.startsWith(lowerValue) || lowerDay === lowerValue;
-  });
-
-  // Not a valid shortcut
-  if (dayOfWeek < 0) {
-    return -1;
-  }
-
-  // Calculate days from now until the given day of week
-  let daysFromNow = dayOfWeek - new Date().getDay();
-  if (daysFromNow <= 0) {
-    daysFromNow += 7;
-  }
-  return daysFromNow + weeksToAdd * 7;
-}
-
-
-/**
- * Parses links contained in given markdown text.
- * @param {string} text Markdown text
- * @returns {text: string, links: [{ startIndex: int, endIndex: int, url: string}]} Text without markdown, and parsed links
- */
-function parseMarkdown(text) {
-  const matches = [...text.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\]\(]*)\))/g)];
-  const links = [];
-  let removedCharacters = 0;
-  for (const match of matches) {
-    const { markdown, text: linkText, url } = match.groups;
-    const index = match.index - removedCharacters;
-    text = text.substring(0, index) + linkText + text.substring(index + markdown.length);
-    removedCharacters += markdown.length - linkText.length;
-    links.push({ startIndex: index, endIndex: index + linkText.length, url: url });
-  }
-  return {
-    text,
-    links
-  }
 }
 
 
@@ -320,43 +231,14 @@ async function getTagValueSuggestions(input, tag, valuePrefix) {
   });
 }
 
-/**
- * Sends a request to the Google Sheets API
- * @param method HTTP method
- * @param url URL
- * @param body Body (optional)
- * @returns {PromiseLike<unknown>} Response
- */
-function sendRequest(method, url, body = undefined) {
-  return chrome.identity.getAuthToken({ interactive: true })
-    .then(({ token }) => {
-      const headers = {
-        'Content-type': 'application/json',
-        'Authorization': 'Bearer ' + token,
-      };
-      return fetch(url, {
-        method,
-        headers,
-        body,
-      });
-    })
-    .then((response) => {
-      if (response.ok) {
-        return response;
-      } else {
-        return response.text().then((text) => { throw new Error(text) });
-      }
-    });
-}
-
 
 /**
- * Inserts new item into spreadsheet
+ * Inserts new item into backlog.
  * @param input Raw user-entered input into Omnibox
  */
-function insertItem(input) {
+async function insertItem(input) {
 
-  // Parse input
+  // Parse input.
   const { title, tags } = parseInput(input);
   const consolidatedTags = {};
   for (const tag of tags) {
@@ -366,169 +248,78 @@ function insertItem(input) {
   }
   const project = consolidatedTags[config.TAG_PROJECT];
   const priority = consolidatedTags[config.TAG_PRIORITY];
-  const dateValue = consolidatedTags[config.TAG_DATE];
-  const durationValue = consolidatedTags[config.TAG_SCHEDULE];
-  const duration = /^[0-9]+$/.test(durationValue) ? parseInt(durationValue) : undefined;
+  let dayShortcut = consolidatedTags[config.TAG_DATE];
+  const scheduledTime = consolidatedTags[config.TAG_SCHEDULE];
 
-  // Determine date and status
-  let date = undefined;
-  let status = undefined;
-  const daysFromNow = parseDateValue(dateValue);
-  if (daysFromNow === 0) {
+
+  // If day shortcut is '0', set status to 'Next'.
+  // If day shortcut is not '0' and not missing, set status to 'Waiting'.
+  let status;
+  if (dayShortcut === '0') {
+    dayShortcut = undefined;
     status = config.STATUS_NEXT;
-  } else if (daysFromNow > 0) {
+  } else if (dayShortcut) {
     status = config.STATUS_WAITING;
-
-    // TODO: Use the calendar time zone instead of the spreadsheet time zone.
-    // Format date as serial number and use the beginning of the day at 00:00:00,
-    // see https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption.
-    const today = new Date();
-    date = 25569.0 + daysFromNow + Math.floor((today.getTime() - today.getTimezoneOffset() * 60 * 1000) / (1000 * 60 * 60 * 24));
-  } else {
-
-    // Set status to 'Next' if item should be added to calendar but no date was provided
-    if (duration !== undefined) {
-      status = config.STATUS_NEXT;
-    }
   }
 
-  // Insert item into spreadsheet and show notification if successful
-  const url = `${SHEETS_API}/${config.SPREADSHEET_ID}:batchUpdate`;
-  const body = JSON.stringify({ requests: batchUpdateRequests(title, project, priority, status, date, duration) });
-  sendRequest('POST', url, body)
-    .then(() => {
-      const { text: renderedTitle } = parseMarkdown(title);
-      console.log(`Item added: "${renderedTitle}"`);
-      notifications.showNotification({ message: `Item added: ${renderedTitle}` });
-    })
-    .catch((error) => {
-      console.error(error);
-    });
+  // Assemble parameters, excluding undefined values.
+  let params = {
+    title,
+    project,
+    priority,
+    status,
+    dayShortcut,
+    scheduledTime,
+  };
+  params = Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== undefined));
+  
+  // Make request.
+  await makeWebAppRequest('POST', 'create-backlog-item', params);
+
+  // Show notification.
+  const displayedTitle = title ? getDisplayedTitle(title) : title;  
+  notifications.showNotification({ message: `Item added: ${displayedTitle}` });
 }
 
 
 /**
- * Returns batch update requests for Google Sheets API
- * @param {string} title Title of new item (may contain links in markdown format)
- * @param {string} project Project (optional)
- * @param {int} priority Priority (optional)
- * @param {string} status Status (optional)
- * @param {number} date Date in serial number format, see https://developers.google.com/sheets/api/reference/rest/v4/DateTimeRenderOption (optional)
- * @param {number} duration
- * @returns {object} Update requests
+ * Makes a request to the deployed web app.
+ * @param {string} method HTTP method, "GET" or "POST"
+ * @param {string} path Path, relative to the deployed web app URL
+ * @param {Object} params Parameters
+ * @returns {PromiseLike<Object>} Parsed response data
  */
-function batchUpdateRequests(title,
-  project = undefined,
-  priority = undefined,
-  status = undefined,
-  date = undefined,
-  duration = undefined) {
-  const requests = [];
+async function makeWebAppRequest(method, path, params = {}) {
 
-  // Insert new row at the top
-  requests.push({
-    insertDimension: {
-      range: { sheetId: config.BACKLOG_SHEET_ID, dimension: 'ROWS', startIndex: 1, endIndex: 2 },
-      inheritFromBefore: false
-    }
-  });
+  // Make request.
+  const url = `${config.WEB_APP_DEPLOYMENT_URL}/${path}?${new URLSearchParams(params).toString()}`;
+  const response = await fetch(url, { method });
 
-  // Set title
-  const { text: renderedTitle, links } = parseMarkdown(title);
-  requests.push(writeValueUpdateRequest(config.TITLE_COLUMN, renderedTitle, false, links));
-
-  // Set project
-  if (project) {
-    requests.push(writeValueUpdateRequest(config.PROJECT_COLUMN, project));
+  // Throw error if request failed.
+  if (!response.ok) {
+    throw new Error(await response.text());
   }
 
-  // Set priority
-  if (priority !== undefined) {
-    requests.push(writeValueUpdateRequest(config.PRIORITY_COLUMN, priority, true));
+  // Parse response.
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error('Failed to make request to web app: ' + data.error);
   }
-
-  // Set status
-  if (status) {
-    requests.push(writeValueUpdateRequest(config.STATUS_COLUMN, status));
-  }
-
-  // Set duration
-  if (duration !== undefined) {
-    requests.push(writeValueUpdateRequest(config.SCHEDULED_TIME_COLUMN, duration, true));
-
-    // Mark item as silently schedulable
-    const metaDataRequest = {
-      createDeveloperMetadata: {
-        developerMetadata: {
-          location: {
-            dimensionRange: {
-              sheetId: config.BACKLOG_SHEET_ID,
-              dimension: 'ROWS',
-              startIndex: config.HEADER_ROWS,
-              endIndex: config.HEADER_ROWS + 1
-            }
-          },
-          visibility: 'DOCUMENT',
-          metadataKey: config.AUTOMATICALLY_SCHEDULABLE_DEVELOPER_METADATA_KEY,
-          metadataValue: '' // no value needed, key suffices
-        }
-      }
-    };
-    requests.push(metaDataRequest);
-  }
-
-  // Set date
-  if (date !== undefined) {
-    requests.push(writeValueUpdateRequest(config.DATE_COLUMN, date, true));
-  }
-
-  return requests;
+  return data.data;
 }
 
 
 /**
- * Returns update requests for Google Sheets API to write a single value into the given column of
- * the first non-header row.
- * @param {int} columnIndex One-based index of column
- * @param {object} value Value to insert
- * @param {boolean} numeric Whether value is numeric or a string
- * @param {[{ startIndex, endIndex, url}]} links Links to be inserted, in order of appearance
- * @returns {object} Update request
+ * Gets displayed title of item by removing markdown links.
  */
-function writeValueUpdateRequest(columnIndex, value, numeric = false, links = null) {
-
-  // Compile cell data.
-  let fields;
-  const cellData = {};
-  if (numeric) {
-    fields = 'userEnteredValue';
-    cellData.userEnteredValue = { numberValue: value };
-  } else {
-    fields = 'userEnteredValue,textFormatRuns';
-    cellData.userEnteredValue = { stringValue: value };
-
-    // Format links inside cell.
-    if (links?.length) {
-      cellData.textFormatRuns = [];
-      for (const { startIndex, endIndex, url } of links) {
-        cellData.textFormatRuns.push({ format: { link: { uri: url } }, startIndex: startIndex });
-        if (endIndex < value.length) {
-          cellData.textFormatRuns.push({ startIndex: endIndex });
-        }
-      }
-    }
+function getDisplayedTitle(title) {
+  const matches = [...title.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\]\(]*)\))/g)];
+  let removedCharacters = 0;
+  for (const match of matches) {
+    const { markdown, text } = match.groups;
+    const index = match.index - removedCharacters;
+    title = title.substring(0, index) + text + title.substring(index + markdown.length);
+    removedCharacters += markdown.length - text.length;
   }
-
-  // Compile request.
-  return {
-    updateCells: {
-      start: {
-        sheetId: config.BACKLOG_SHEET_ID,
-        rowIndex: config.HEADER_ROWS,
-        columnIndex: columnIndex - 1
-      },
-      fields: fields,
-      rows: { values: [cellData] }
-    }
-  }
+  return title;
 }

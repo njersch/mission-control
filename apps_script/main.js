@@ -1,4 +1,73 @@
 /**
+ * Web app instance to handle requests.
+ * 
+ * 
+ * Web app deployment is used as a workaround. The correct way would be to deploy the script
+ * as an API executable. However, deploying as an API executable requires changing the
+ * GCP project, which is not possible if a spreadsheet is stored in a shared Google Drive.
+ * 
+ * `WebApp` may not yet be defined when this file is loaded, so we create it lazily on first use.
+ */
+let webApp = null;
+const getWebApp = () => {
+
+  // Return existing web app instance if it exists.
+  if (webApp) {
+    return webApp;
+  }
+
+  webApp = new WebApp();
+
+  // End point to get all unique project names.
+  webApp.on(WebApp.RequestType.GET, '/project-names', (_) => {
+    return Backlog.getProjectNames();
+  });
+  
+  // End point to create a new backlog item.
+  webApp.on(WebApp.RequestType.POST, '/create-backlog-item', (params) => {
+
+    // Parse parameters.
+    let { title, project, priority, status, dayShortcut, scheduledTime } = params;
+    priority = priority !== undefined ? Number.parseInt(priority) : undefined;
+    scheduledTime = scheduledTime !== undefined ? Number.parseInt(scheduledTime) : undefined;
+    const waitingDate = dayShortcut ? Backlog.convertDayShortcutToDate(dayShortcut) : null;
+    
+    // Insert item.
+    const item = new BacklogItem({ title, project, priority, status, waitingDate, scheduledTime });
+    Backlog.insertBacklogItem(item);
+  });
+  
+  // End point to schedule events via shortcut.
+  webApp.on(WebApp.RequestType.POST, '/schedule-events', (_) => {
+    // Schedule all events automatically, but without showing errors.
+    const success = Backlog.scheduleEvents(false, false);
+
+    // Respond with success if the shortcut was executed,
+    // but supply an error message if scheduling failed.
+    return success ? undefined : 'Could not schedule events.';
+  });
+
+  return webApp;
+}
+
+
+/**
+ * Function that is called when a GET request to web app is made.
+ */
+function doGet(e) {
+  return getWebApp().handleRequest(WebApp.RequestType.GET, e);
+}
+
+
+/**
+ * Function that is called when a POST request to web app is made.
+ */
+function doPost(e) {
+  return getWebApp().handleRequest(WebApp.RequestType.POST, e);
+}
+
+
+/**
  * Trigger function that is called when spreadsheet is opened.
  */
 function onOpen() {
@@ -20,22 +89,6 @@ function onEdit(e) {
  */
 function onSelectionChange(e) {
   Backlog.handleOnSelectionChange(e);
-}
-
-
-/**
- * Function that is called when script is deployed as a web app and a POST request is made.
- * 
- * Web app deployment is used as a workaround. The correct way would be to deploy the script
- * as an API executable. However, deploying as an API executable requires changing the
- * GCP project, which is not possible if a spreadsheet is stored in a shared Google Drive.
- */
-function doPost(e) {
-  // Schedule all events automatically, but without showing errors.
-  // Errors must be handled by the caller.
-  const success = Backlog.scheduleEvents(false, false);
-  const response = { success: success };
-  return ContentService.createTextOutput(JSON.stringify(response));
 }
 
 

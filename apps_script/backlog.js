@@ -3,11 +3,34 @@
  */
 class BacklogItem {
 
-  constructor(title, project, priority, notes) {
+  /**
+   * Creates a new backlog item.
+   * 
+   * @param {Object} data - The data for the backlog item.
+   * @param {string} data.title - The title of the backlog item. May contain markdown links.
+   * @param {string} data.project - The project of the backlog item.
+   * @param {integer} data.priority - The priority of the backlog item.
+   * @param {string} data.status - The status of the backlog item.
+   * @param {string} data.notes - The notes of the backlog item. May contain markdown links.
+   * @param {Date} data.waitingDate - The waiting date of the backlog item.
+   * @param {integer} data.scheduledTime - The scheduled time of the backlog item in minutes.
+   */
+  constructor({
+    title,
+    project,
+    priority,
+    status,
+    notes,
+    waitingDate,
+    scheduledTime,
+  }) {
     this.title = title;
     this.project = project;
     this.priority = priority;
+    this.status = status;
     this.notes = notes;
+    this.waitingDate = waitingDate;
+    this.scheduledTime = scheduledTime;
   }
 }
 
@@ -181,6 +204,32 @@ class Backlog {
 
 
   /**
+   * Returns a list of unique project names.
+   */
+  static getProjectNames() {
+    const sheet = this.getBacklogSheet();
+    const range = sheet.getRange(
+      BacklogConfig.HEADER_ROWS + 1,
+      BacklogConfig.COLUMN_PROJECT,
+      sheet.getLastRow() - BacklogConfig.HEADER_ROWS
+    );
+
+    const values = range.getValues();
+    let projectNames = values.flat();
+
+    // Trim whitespace and filter out empty values.
+    projectNames = projectNames
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
+
+    // Remove duplicates.
+    projectNames = [...new Set(projectNames)]
+
+    return projectNames;
+  }
+
+
+  /**
    * Inserts new empty item at the top.
    */
   static insertEmptyBacklogItem() {
@@ -202,11 +251,35 @@ class Backlog {
 
       // Populate info, if provided.
       if (item != null) {
-        sheet.getRange(row, BacklogConfig.COLUMN_TITLE).setValue(item.title);
-        sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).setValue(item.project);
-        sheet.getRange(row, BacklogConfig.COLUMN_PRIORITY).setValue(item.priority);
-        sheet.getRange(row, BacklogConfig.COLUMN_NOTES).setValue(item.notes);
-        sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(BacklogConfig.STATUS_NEXT);
+
+        // Set cell values and metadata.
+        if (item.title) { 
+          const richTitle = this.makeRichTextWithLinks(item.title);
+          sheet.getRange(row, BacklogConfig.COLUMN_TITLE).setRichTextValue(richTitle);
+        }
+        if (item.notes) {
+          const richNotes = this.makeRichTextWithLinks(item.notes);
+          sheet.getRange(row, BacklogConfig.COLUMN_NOTES).setRichTextValue(richNotes);
+        }
+        if (item.project) {
+          sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).setValue(item.project);
+        }
+        if (item.priority !== null && item.priority !== undefined) {
+          sheet.getRange(row, BacklogConfig.COLUMN_PRIORITY).setValue(item.priority);
+        }
+        if (item.waitingDate) {
+          sheet.getRange(row, BacklogConfig.COLUMN_WAITING).setValue(item.waitingDate);
+        }
+        if (item.status) {
+          sheet.getRange(row, BacklogConfig.COLUMN_STATUS).setValue(item.status);
+        }
+        if (item.scheduledTime !== null && item.scheduledTime !== undefined) {
+          sheet.getRange(row, BacklogConfig.COLUMN_SCHEDULED_TIME).setValue(item.scheduledTime);
+
+          // Mark item as automatically schedulable if scheduled time is set.
+          const key = BacklogConfig.AUTOMATICALLY_SCHEDULABLE_DEVELOPER_METADATA_KEY;
+          this.setDeveloperMetadata(sheet, row, key, '');
+        }
       }
 
       // Activate title cell if desired.
@@ -332,51 +405,63 @@ class Backlog {
   static convertWaitingDateIfNeeded(sheet, row) {
     this.doWithDocumentLock(() => {
         
-      // Obtain original value. Don't use event object's 'value' since it may be passed as an integer,
-      // not a date.
+      // Obtain original value. Don't use event object's 'value' since it may be passed as
+      // an integer, not a date.
       const originalValue = this.getBacklogSheet().getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
 
-      // Determine the earliest possible date (tomorrow) in UTC.
-      const earliestPossibleDateUTC = TimeZones.convert(new Date(), TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
-      earliestPossibleDateUTC.setUTCDate(earliestPossibleDateUTC.getUTCDate() + 1);
-
-      // Converted date in UTC. Null if no conversion is needed.
-      let convertedDateUTC = null;
-
       // Increment year if value is a date in the past.
+      let convertedDate = null;
       if (originalValue instanceof Date && originalValue < Date.now()) {
-        
-        convertedDateUTC = TimeZones.convert(originalValue, TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
-        convertedDateUTC.setUTCFullYear(convertedDateUTC.getUTCFullYear() + 1);
-
-      // Attempt to parse integer-based shortcut (e.g. "10").
-      } else if (/^[1-9][0-9]*$/.test(originalValue)) {
-          
-        // Add days
-        const addDays = Number.parseInt(originalValue);
-        convertedDateUTC = new Date(earliestPossibleDateUTC);
-        convertedDateUTC.setUTCDate(convertedDateUTC.getUTCDate() + addDays - 1);
-      
-      } else if (typeof originalValue === 'string') {
-
-        // Attempt to parse shortcut (e.g. "Mon").
-        const incrementedDateUTC = new Date(earliestPossibleDateUTC);
-        if (this.tryIncrementDateToUTCDay(incrementedDateUTC, originalValue)) {
-          convertedDateUTC = incrementedDateUTC;
-        }
+        const spreadsheetTimeZone = TimeZones.getSpreadsheetTimeZone();
+        convertedDate = TimeZones.convert(originalValue, spreadsheetTimeZone, TimeZones.UTC());
+        convertedDate.setUTCFullYear(convertedDate.getUTCFullYear() + 1);
+        convertedDate = TimeZones.convert(convertedDate, TimeZones.UTC(), spreadsheetTimeZone);
+      } else {
+        convertedDate = this.convertDayShortcutToDate(originalValue);
       }
-
-      if (convertedDateUTC) {
-
-        // Convert back to spreadsheet time zone.
-        const updatedDate = TimeZones.convert(convertedDateUTC, TimeZones.UTC(), TimeZones.getSpreadsheetTimeZone());
-
-        // Update cell.
+      
+      // Set value if conversion was successful.
+      if (convertedDate) {
         const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
-        range.setValue(updatedDate);
+        range.setValue(convertedDate);
         range.setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
       }
     });
+  }
+
+
+  /**
+   * Converts a day shortcut (e.g. "Mon" or "10") to a date.
+   * Returns null if conversion fails.
+   */
+  static convertDayShortcutToDate(dayShortcut) {
+    
+    // Determine the earliest possible date (tomorrow) in UTC.
+    const earliestPossibleDateUTC = TimeZones.convert(new Date(), TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
+    earliestPossibleDateUTC.setUTCDate(earliestPossibleDateUTC.getUTCDate() + 1);
+
+    const spreadsheetTimeZone = TimeZones.getSpreadsheetTimeZone();
+
+    // Attempt to parse integer-based shortcut (e.g. "10").
+    if (/^[1-9][0-9]*$/.test(dayShortcut)) {
+        
+      // Add days.
+      const addDays = Number.parseInt(dayShortcut);
+      const convertedDate = new Date(earliestPossibleDateUTC);
+      convertedDate.setUTCDate(convertedDate.getUTCDate() + addDays - 1);
+      return TimeZones.convert(convertedDate, TimeZones.UTC(), spreadsheetTimeZone);
+    }
+    
+    // Attempt to parse shortcut (e.g. "Mon").
+    if (typeof dayShortcut === 'string') {
+      const incrementedDate = new Date(earliestPossibleDateUTC);
+      if (this.tryIncrementDateToUTCDay(incrementedDate, dayShortcut)) {
+        return TimeZones.convert(incrementedDate, TimeZones.UTC(), spreadsheetTimeZone);
+      }
+      return null;
+    }
+
+    return null;
   }
 
 
@@ -529,12 +614,13 @@ class Backlog {
    * Creates a backlog item with info from the given row.
    */
   static getRecurringBacklogItem(sheet, row) {
-    return new BacklogItem(
-      sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_TITLE).getValue(),
-      sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_PROJECT).getValue(),
-      sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_PRIORITY).getValue(),
-      sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_NOTES).getValue()
-    );
+    return new BacklogItem({
+      title: sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_TITLE).getValue(),
+      project: sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_PROJECT).getValue(),
+      priority: sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_PRIORITY).getValue(),
+      status: BacklogConfig.STATUS_NEXT,
+      notes: sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_NOTES).getValue(),
+    });
   }
 
 
@@ -542,12 +628,10 @@ class Backlog {
    * Inserts an empty recurring backlog item.
    */
   static insertRecurringItem() {
-    this.doWithDocumentLock(() => {
-      const row = BacklogConfig.RECURRING_HEADER_ROWS + 1;
-      const sheet = this.getRecurringBacklogSheet(row);
-      sheet.insertRowBefore(row);
-      sheet.setActiveRange(sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_TITLE));
-    });
+    const row = BacklogConfig.RECURRING_HEADER_ROWS + 1;
+    const sheet = this.getRecurringBacklogSheet(row);
+    sheet.insertRowBefore(row);
+    sheet.setActiveRange(sheet.getRange(row, BacklogConfig.RECURRING_COLUMN_TITLE));
   }
 
 
@@ -684,54 +768,50 @@ class Backlog {
    * Creates backlog items for recurring items that are due.
    */
   static scheduleRecurringItems() {
+    const sheet = this.getRecurringBacklogSheet();
+    const lastRow = sheet.getLastRow();
+    for (let row = BacklogConfig.RECURRING_HEADER_ROWS + 1; row <= Math.min(lastRow, 1000); row++) {
 
-    this.doWithDocumentLock(() => {
+      // Read info.
+      const cadenceFactor = this.getCadenceFactor(sheet, row);
+      const cadenceType = this.getCadenceType(sheet, row);
+      const day = this.getRecurringDay(sheet, row);
 
-      const sheet = this.getRecurringBacklogSheet();
-      const lastRow = sheet.getLastRow();
-      for (let row = BacklogConfig.RECURRING_HEADER_ROWS + 1; row <= Math.min(lastRow, 1000); row++) {
-
-        // Read info.
-        const cadenceFactor = this.getCadenceFactor(sheet, row);
-        const cadenceType = this.getCadenceType(sheet, row);
-        const day = this.getRecurringDay(sheet, row);
-
-        // Find next date on which to schedule item.
-        let nextDate = this.getNextDate(sheet, row);
-        if (nextDate == null) {
-          nextDate = this.findNextDate(cadenceType, cadenceFactor, day, null);
-          this.setNextDate(sheet, row, nextDate);
-        }
-
-        // Skip if next date has not yet come.
-        const now = new Date();
-        if (now <= nextDate) {
-          continue;
-        }
-
-        // Insert item if not paused.
-        if (!BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED) {
-          
-          // Read item info from row.
-          let item = this.getRecurringBacklogItem(sheet, row);
-
-          // If specified, run script to populate item.
-          if (item.title != null && /^[a-zA-Z_]+[a-zA-Z_0-9]*\(\);$/.test(item.title)) {
-            item = eval(item.title);
-            if (item == null) {
-              continue;
-            }
-          }
-          
-          // Insert item.
-          this.insertBacklogItem(item);
-        }
-
-        // Find and set date for next instance.
-        nextDate = this.findNextDate(cadenceType, cadenceFactor, day, nextDate);
+      // Find next date on which to schedule item.
+      let nextDate = this.getNextDate(sheet, row);
+      if (nextDate == null) {
+        nextDate = this.findNextDate(cadenceType, cadenceFactor, day, null);
         this.setNextDate(sheet, row, nextDate);
       }
-    });
+
+      // Skip if next date has not yet come.
+      const now = new Date();
+      if (now <= nextDate) {
+        continue;
+      }
+
+      // Insert item if not paused.
+      if (!BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED) {
+        
+        // Read item info from row.
+        let item = this.getRecurringBacklogItem(sheet, row);
+
+        // If specified, run script to populate item.
+        if (item.title != null && /^[a-zA-Z_]+[a-zA-Z_0-9]*\(\);$/.test(item.title)) {
+          item = eval(item.title);
+          if (item == null) {
+            continue;
+          }
+        }
+        
+        // Insert item.
+        this.insertBacklogItem(item);
+      }
+
+      // Find and set date for next instance.
+      nextDate = this.findNextDate(cadenceType, cadenceFactor, day, nextDate);
+      this.setNextDate(sheet, row, nextDate);
+    }
   }
 
 
@@ -867,7 +947,7 @@ class Backlog {
       return;
     }
     InboxImporter.importFromInbox((title) => {
-      const item = new BacklogItem(title, null, null, InboxImporterConfig.NOTES_TAG);
+      const item = new BacklogItem({ title, notes: InboxImporterConfig.NOTES_TAG });
       this.insertBacklogItem(item);
     });
   }
@@ -950,5 +1030,33 @@ class Backlog {
     } finally {
       lock.releaseLock();
     }
+  }
+
+/**
+ * Parses links contained in given markdown text and returns `RichTextValue` with links.
+ * @param {string} markdownText Text with markdown links
+ */
+  static makeRichTextWithLinks(markdownText) {
+
+    // Parse links.
+    const matches = [...markdownText.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\]\(]*)\))/g)];
+    const links = [];
+    let text = markdownText;
+    let removedCharacters = 0;
+    for (const match of matches) {
+      const { markdown, text: linkText, url } = match.groups;
+      const index = match.index - removedCharacters;
+      text = text.substring(0, index) + linkText + text.substring(index + markdown.length);
+      removedCharacters += markdown.length - linkText.length;
+      links.push({ startOffset: index, endOffsetInclusive: index + linkText.length, url: url });
+    }
+
+    // Make rich text.
+    const richText = SpreadsheetApp.newRichTextValue();
+    richText.setText(text);
+    for (const link of links) {
+      richText.setLinkUrl(link.startOffset, link.endOffsetInclusive, link.url);
+    }
+    return richText.build();
   }
 }
