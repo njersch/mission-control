@@ -306,19 +306,23 @@ class Backlog {
    * Sets status to waiting in given row.
    */
   static setWaiting(sheet, row) {
+    this.doWithDocumentLock(() => {
       const range = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
       range.setValue(BacklogConfig.STATUS_WAITING);
-    }
+    });
+  }
 
 
   /**
    * Clears waiting date in given row if status changed from waiting to something else.
    */
   static clearWaitingDateIfNeeded(sheet, row, oldStatus, newStatus) {
-    if (oldStatus === BacklogConfig.STATUS_WAITING && newStatus !== BacklogConfig.STATUS_WAITING) {
-      const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
-      range.clearContent();
-    }
+    this.doWithDocumentLock(() => {
+      if (oldStatus === BacklogConfig.STATUS_WAITING && newStatus !== BacklogConfig.STATUS_WAITING) {
+        const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
+        range.clearContent();
+      }
+    });
   }
 
 
@@ -326,51 +330,53 @@ class Backlog {
    * Converts a value entered in the waiting column (e.g. "Mon" or "10") if needed.
    */
   static convertWaitingDateIfNeeded(sheet, row) {
-    
-    // Obtain original value. Don't use event object's 'value' since it may be passed as an integer,
-    // not a date.
-    const originalValue = this.getBacklogSheet().getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
-
-    // Determine the earliest possible date (tomorrow) in UTC.
-    const earliestPossibleDateUTC = TimeZones.convert(new Date(), TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
-    earliestPossibleDateUTC.setUTCDate(earliestPossibleDateUTC.getUTCDate() + 1);
-
-    // Converted date in UTC. Null if no conversion is needed.
-    let convertedDateUTC = null;
-
-    // Increment year if value is a date in the past.
-    if (originalValue instanceof Date && originalValue < Date.now()) {
-      
-      convertedDateUTC = TimeZones.convert(originalValue, TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
-      convertedDateUTC.setUTCFullYear(convertedDateUTC.getUTCFullYear() + 1);
-
-    // Attempt to parse integer-based shortcut (e.g. "10").
-    } else if (/^[1-9][0-9]*$/.test(originalValue)) {
+    this.doWithDocumentLock(() => {
         
-      // Add days
-      const addDays = Number.parseInt(originalValue);
-      convertedDateUTC = new Date(earliestPossibleDateUTC);
-      convertedDateUTC.setUTCDate(convertedDateUTC.getUTCDate() + addDays - 1);
-    
-    } else if (typeof originalValue === 'string') {
+      // Obtain original value. Don't use event object's 'value' since it may be passed as an integer,
+      // not a date.
+      const originalValue = this.getBacklogSheet().getRange(row, BacklogConfig.COLUMN_WAITING).getValue();
 
-      // Attempt to parse shortcut (e.g. "Mon").
-      const incrementedDateUTC = new Date(earliestPossibleDateUTC);
-      if (this.tryIncrementDateToUTCDay(incrementedDateUTC, originalValue)) {
-        convertedDateUTC = incrementedDateUTC;
+      // Determine the earliest possible date (tomorrow) in UTC.
+      const earliestPossibleDateUTC = TimeZones.convert(new Date(), TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
+      earliestPossibleDateUTC.setUTCDate(earliestPossibleDateUTC.getUTCDate() + 1);
+
+      // Converted date in UTC. Null if no conversion is needed.
+      let convertedDateUTC = null;
+
+      // Increment year if value is a date in the past.
+      if (originalValue instanceof Date && originalValue < Date.now()) {
+        
+        convertedDateUTC = TimeZones.convert(originalValue, TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
+        convertedDateUTC.setUTCFullYear(convertedDateUTC.getUTCFullYear() + 1);
+
+      // Attempt to parse integer-based shortcut (e.g. "10").
+      } else if (/^[1-9][0-9]*$/.test(originalValue)) {
+          
+        // Add days
+        const addDays = Number.parseInt(originalValue);
+        convertedDateUTC = new Date(earliestPossibleDateUTC);
+        convertedDateUTC.setUTCDate(convertedDateUTC.getUTCDate() + addDays - 1);
+      
+      } else if (typeof originalValue === 'string') {
+
+        // Attempt to parse shortcut (e.g. "Mon").
+        const incrementedDateUTC = new Date(earliestPossibleDateUTC);
+        if (this.tryIncrementDateToUTCDay(incrementedDateUTC, originalValue)) {
+          convertedDateUTC = incrementedDateUTC;
+        }
       }
-    }
 
-    if (convertedDateUTC) {
+      if (convertedDateUTC) {
 
-      // Convert back to spreadsheet time zone.
-      const updatedDate = TimeZones.convert(convertedDateUTC, TimeZones.UTC(), TimeZones.getSpreadsheetTimeZone());
+        // Convert back to spreadsheet time zone.
+        const updatedDate = TimeZones.convert(convertedDateUTC, TimeZones.UTC(), TimeZones.getSpreadsheetTimeZone());
 
-      // Update cell.
-      const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
-      range.setValue(updatedDate);
-      range.setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
-    }
+        // Update cell.
+        const range = sheet.getRange(row, BacklogConfig.COLUMN_WAITING);
+        range.setValue(updatedDate);
+        range.setNumberFormat(BacklogConfig.WAITING_DATE_FORMAT);
+      }
+    });
   }
 
 
