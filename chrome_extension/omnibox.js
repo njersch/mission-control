@@ -251,15 +251,17 @@ async function insertItem(input) {
   let dayShortcut = consolidatedTags[config.TAG_DATE];
   const scheduledTime = consolidatedTags[config.TAG_SCHEDULE];
 
-
-  // If day shortcut is '0', set status to 'Next'.
-  // If day shortcut is not '0' and not missing, set status to 'Waiting'.
+  // Determine status.
   let status;
-  if (dayShortcut === '0') {
-    dayShortcut = undefined;
+  if (dayShortcut) {
+    if (dayShortcut === '0') {
+      dayShortcut = undefined;
+      status = config.STATUS_NEXT;
+    } else {
+      status = config.STATUS_WAITING;
+    }
+  } else if (scheduledTime) {
     status = config.STATUS_NEXT;
-  } else if (dayShortcut) {
-    status = config.STATUS_WAITING;
   }
 
   // Assemble parameters, excluding undefined values.
