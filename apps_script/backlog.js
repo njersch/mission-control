@@ -436,11 +436,11 @@ class Backlog {
    */
   static convertDayShortcutToDate(dayShortcut) {
     
-    // Determine the earliest possible date (tomorrow) in UTC.
-    const earliestPossibleDateUTC = TimeZones.convert(new Date(), TimeZones.getSpreadsheetTimeZone(), TimeZones.UTC());
+    // Determine the earliest possible date (tomorrow, relative to calendar time zone)
+    // and convert it to UTC.
+    const calendarTimeZone = TimeZones.getCalendarTimeZone();
+    const earliestPossibleDateUTC = TimeZones.convert(new Date(), calendarTimeZone, TimeZones.UTC());
     earliestPossibleDateUTC.setUTCDate(earliestPossibleDateUTC.getUTCDate() + 1);
-
-    const spreadsheetTimeZone = TimeZones.getSpreadsheetTimeZone();
 
     // Attempt to parse integer-based shortcut (e.g. "10").
     if (/^[1-9][0-9]*$/.test(dayShortcut)) {
@@ -449,14 +449,14 @@ class Backlog {
       const addDays = Number.parseInt(dayShortcut);
       const convertedDate = new Date(earliestPossibleDateUTC);
       convertedDate.setUTCDate(convertedDate.getUTCDate() + addDays - 1);
-      return TimeZones.convert(convertedDate, TimeZones.UTC(), spreadsheetTimeZone);
+      return TimeZones.convert(convertedDate, TimeZones.UTC(), TimeZones.getSpreadsheetTimeZone());
     }
     
     // Attempt to parse shortcut (e.g. "Mon").
     if (typeof dayShortcut === 'string') {
       const incrementedDate = new Date(earliestPossibleDateUTC);
       if (this.tryIncrementDateToUTCDay(incrementedDate, dayShortcut)) {
-        return TimeZones.convert(incrementedDate, TimeZones.UTC(), spreadsheetTimeZone);
+        return TimeZones.convert(incrementedDate, TimeZones.UTC(), TimeZones.getSpreadsheetTimeZone());
       }
       return null;
     }
