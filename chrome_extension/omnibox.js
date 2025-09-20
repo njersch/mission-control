@@ -281,18 +281,23 @@ async function insertItem(input) {
   // Update notification on success.
   // Show a fresh error notification on failure.
   const displayedTitle = title ? getDisplayedTitle(title) : title;
-  const notificationId = await notifications.showNotification({ message: `Adding item: ${displayedTitle}` });
+  const notificationId = await notifications.showNotification({
+    message: `Adding item: ${displayedTitle}`,
+  });
   try {
     await webApp.sendRequest('POST', 'create-backlog-item', params);
   } catch (error) {
-    notifications.showNotification({
+    await notifications.showNotification({
       message: `Error adding item: ${displayedTitle}`,
-      eventTime: Date.now() + 2 * 1000 // 2 seconds delay
+      eventTime: Date.now() + 1 * 1000, // 1 second delay
     });
     notifications.clearNotification(notificationId);
     throw error;
   }
-  notifications.updateNotification({ notificationId, message: `Item added: ${displayedTitle}` });
+  notifications.updateNotification({
+    notificationId,
+    message: `Item added: ${displayedTitle}`,
+  });
 }
 
 
