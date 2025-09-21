@@ -431,7 +431,7 @@ class Backlog {
 
 
   /**
-   * Converts a day shortcut (e.g. "Mon" or "10") to a date.
+   * Converts a day shortcut (e.g. "Mon", "Mon+3", "Monday", or "10") to a date.
    * Returns null if conversion fails.
    */
   static convertDayShortcutToDate(dayShortcut) {
@@ -568,9 +568,9 @@ class Backlog {
    */
   static tryIncrementDateToUTCDay(date, dayShortcut) {
 
-    // Parse shortcut if it has the format "XXX+n" where "XXX" is a three-letter day
-    // and "n" the number of weeks to add.
-    const regex = /^([A-Za-z]{3})\+(\d+)$/;
+    // Parse shortcut if it has the format "XXX+n" where "XXX" is a day name with three or more 
+    // letters and "n" the number of weeks to add.
+    const regex = /^([A-Za-z]{3,})\+(\d+)$/;
     const match = dayShortcut.match(regex);
     const dayName = match ? match[1] : dayShortcut;
     const weeksToAdd = match ? Number.parseInt(match[2]) : 0;
@@ -597,16 +597,22 @@ class Backlog {
 
 
   /**
-   * Returns index corresponding to day shortcut (e.g. "Mon"). Index is
-   * consistent with JS's Date.getDay().
+   * Returns index corresponding to a full or partial day name (e.g. "Mon" or "Monday") with
+   * at least three letters. Returned index is consistent with JS's Date.getDay().
+   * Returns null if the provided day name is invalid.
    */
   static getDayFromName(dayName) {
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayOfWeek = dayNames.map((s) => s.toLowerCase()).indexOf(dayName.toString().toLowerCase());
-    if (dayOfWeek < 0) {
+    if (dayName.length < 3) {
       return null;
     }
-    return dayOfWeek;
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const match = dayNames.find((name) =>
+      name.toLowerCase().startsWith(dayName.toString().toLowerCase())
+    );
+    if (!match) {
+      return null;
+    }
+    return dayNames.indexOf(match);
   }
 
 
