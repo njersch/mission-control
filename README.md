@@ -130,4 +130,4 @@ To create a recurring to-do, open the 'Recurring' sheet and click on the "+" ico
 
 To integrate with other services, for example to remind you to read the emails you labelled in Gmail for later consumption on a quieter day, you can add **script-based recurring to-dos** that call your own Apps Script to generate a new to-do with a dynamic content. Add a new function to `apps_script/recurring.gs` and have it return an instance of `BacklogItem` as defined in `apps_script/backlog.gs`. Then place a valid JavaScript call of your custom function into the `Title` field, e.g. `functionThatReturnsARecurringToDo();`.
 
-You can temporarily pause all recurring to-dos by adding a script property `BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED` and setting it to `true`.
+You can temporarily pause all recurring to-dos by setting the script property `BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED` to a date string (e.g., `2025-10-15`) to pause until that date.

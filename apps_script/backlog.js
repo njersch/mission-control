@@ -797,7 +797,7 @@ class Backlog {
       }
 
       // Insert item if not paused.
-      if (!BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED) {
+      if (!this.isRecurringItemSchedulingPaused()) {
         
         // Read item info from row.
         let item = this.getRecurringBacklogItem(sheet, row);
@@ -818,6 +818,23 @@ class Backlog {
       nextDate = this.findNextDate(cadenceType, cadenceFactor, day, nextDate);
       this.setNextDate(sheet, row, nextDate);
     }
+  }
+
+
+  /**
+   * Returns whether scheduling of recurring items is paused.
+   */
+  static isRecurringItemSchedulingPaused() {
+    const rawPausedUntil = BacklogConfig.SCHEDULE_RECURRING_ITEMS_PAUSED_UNTIL;
+    if (!rawPausedUntil) {
+      return false;
+    }
+    let pausedUntil = new Date(rawPausedUntil + 'T23:59:59.999Z');
+    if (isNaN(pausedUntil.valueOf())) {
+      return false;
+    }
+    pausedUntil = TimeZones.convert(pausedUntil, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
+    return new Date() < pausedUntil;
   }
 
 
