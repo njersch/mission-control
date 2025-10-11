@@ -25,7 +25,7 @@ chrome.commands.onCommand.addListener((command) => {
   } else if (command === 'open-later-filter-view') {
     sheetShortcuts.switchToFilterView(config.LATER_FILTER_VIEW_ID);
   } else if (command === 'reload-filter-view') {
-    sheetShortcuts.reloadFilterView();
+    sheetShortcuts.switchToFilterView(null);
   } else if (command === 'mark-item-done') {
     sheetShortcuts.markSelectedItemAsDone();
   } else if (command === 'schedule-items') {

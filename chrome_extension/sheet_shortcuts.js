@@ -13,7 +13,7 @@ const FILTER_VIEW_HASH_PARAM_KEY = 'fvid';
 
 /**
  * Switches to filter view if current tab is the backlog spreadsheet.
- * @param {string} filterViewId Filter view ID to switch to.
+ * @param {string} filterViewId Filter view ID to switch to. Null to reload filter view.
  * @returns {string} ID of the previous filter view, or null if filter view was not changed.
  */
 export async function switchToFilterView(filterViewId) {
@@ -28,6 +28,23 @@ export async function switchToFilterView(filterViewId) {
 
   // Get previous filter view ID.
   const previousFilterViewId = hashParams[FILTER_VIEW_HASH_PARAM_KEY];
+
+  // Reload filter view if desired by caller.
+  if (filterViewId === null) {
+    
+    // Switch to intermediate filter view ID that is different from the current filter view,
+    // then switch back to the previous filter view.
+    const intermediateFilterViewId = previousFilterViewId !== config.ALL_FILTER_VIEW_ID ? config.ALL_FILTER_VIEW_ID : config.NEXT_FILTER_VIEW_ID;
+    await switchToFilterView(intermediateFilterViewId);
+    await switchToFilterView(previousFilterViewId);
+    return previousFilterViewId;
+  }
+
+  // Reload filter view if it is the same as the current filter view.
+  if (filterViewId === previousFilterViewId) {
+    await switchToFilterView(null);
+    return previousFilterViewId;
+  }
 
   // Set filter view in hash parameters.
   hashParams[FILTER_VIEW_HASH_PARAM_KEY] = filterViewId;
