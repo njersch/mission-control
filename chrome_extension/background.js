@@ -17,15 +17,15 @@ chrome.commands.onCommand.addListener((command) => {
   } else if (command === 'open-calendar') {
     tabShortcuts.switchToCalendar();
   } else if (command === 'open-all-filter-view') {
-    sheetShortcuts.switchToFilterView(config.ALL_FILTER_VIEW_ID);
+    sheetShortcuts.setFilterView(config.ALL_FILTER_VIEW_ID);
   } else if (command === 'open-next-filter-view') {
-    sheetShortcuts.switchToFilterView(config.NEXT_FILTER_VIEW_ID);
+    sheetShortcuts.setFilterView(config.NEXT_FILTER_VIEW_ID);
   } else if (command === 'open-waiting-filter-view') {
-    sheetShortcuts.switchToFilterView(config.WAITING_FILTER_VIEW_ID);
+    sheetShortcuts.setFilterView(config.WAITING_FILTER_VIEW_ID);
   } else if (command === 'open-later-filter-view') {
-    sheetShortcuts.switchToFilterView(config.LATER_FILTER_VIEW_ID);
+    sheetShortcuts.setFilterView(config.LATER_FILTER_VIEW_ID);
   } else if (command === 'reload-filter-view') {
-    sheetShortcuts.switchToFilterView(null);
+    sheetShortcuts.setFilterView();
   } else if (command === 'mark-item-done') {
     sheetShortcuts.markSelectedItemAsDone();
   } else if (command === 'schedule-items') {

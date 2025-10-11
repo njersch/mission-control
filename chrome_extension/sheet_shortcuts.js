@@ -13,10 +13,9 @@ const FILTER_VIEW_HASH_PARAM_KEY = 'fvid';
 
 /**
  * Switches to filter view if current tab is the backlog spreadsheet.
- * @param {string} filterViewId Filter view ID to switch to. Null to reload filter view.
- * @returns {string} ID of the previous filter view, or null if filter view was not changed.
+ * @param {string} filterViewId Filter view ID to switch to, or `undefined` to reload current view.
  */
-export async function switchToFilterView(filterViewId) {
+export async function setFilterView(filterViewId) {
 
   const activeTab = await getActiveTabIfBacklogSheet();
 
@@ -29,43 +28,40 @@ export async function switchToFilterView(filterViewId) {
   // Get previous filter view ID.
   const previousFilterViewId = hashParams[FILTER_VIEW_HASH_PARAM_KEY];
 
-  // Reload filter view if desired by caller.
-  if (filterViewId === null) {
-    
+  const filterViewSequence = [];
+
+  // Determine if we should reload the filter view.
+  const shouldReload =
+    // Only reload if there is a previous filter view to reload.
+    previousFilterViewId !== undefined &&
+    (
+      // Reload if desired by caller.
+      (filterViewId === undefined) ||
+      // Reload if desired filter view is the same as the current filter view.
+      filterViewId === previousFilterViewId
+    );
+
+  if (shouldReload) {
     // Switch to intermediate filter view ID that is different from the current filter view,
-    // then switch back to the previous filter view.
+    // then switch back to the previous filter view. Otherwise Google Sheets would not reload
+    // the filter view because the URL never changes.
     const intermediateFilterViewId = previousFilterViewId !== config.ALL_FILTER_VIEW_ID ? config.ALL_FILTER_VIEW_ID : config.NEXT_FILTER_VIEW_ID;
-    await switchToFilterView(intermediateFilterViewId);
-    await switchToFilterView(previousFilterViewId);
-    return previousFilterViewId;
+    filterViewSequence.push(intermediateFilterViewId);
+    filterViewSequence.push(previousFilterViewId);
+  } else if (filterViewId !== undefined) {
+    // Switch to desired filter view, if provided.
+    filterViewSequence.push(filterViewId);
   }
 
-  // Reload filter view if it is the same as the current filter view.
-  if (filterViewId === previousFilterViewId) {
-    await switchToFilterView(null);
-    return previousFilterViewId;
-  }
-
-  // Set filter view in hash parameters.
-  hashParams[FILTER_VIEW_HASH_PARAM_KEY] = filterViewId;
-  const hash = Object.entries(hashParams)
-    .map(([key, value]) => `${key}=${value}`)
-    .join('&');
-  const url = new URL(activeTab.url);
-  url.hash = `#${hash}`;
-  await chrome.tabs.update(activeTab.id, {url: url.toString()});
-
-  return previousFilterViewId;
-}
-
-
-/**
- * Reloads the filter view.
- */
-export async function reloadFilterView() {
-  const previousFilterViewId = await switchToFilterView(config.ALL_FILTER_VIEW_ID);
-  if (previousFilterViewId !== null) {
-    await switchToFilterView(previousFilterViewId);
+  // Update hash parameters for each filter view in sequence.
+  for (const filterViewId of filterViewSequence) {
+    hashParams[FILTER_VIEW_HASH_PARAM_KEY] = filterViewId;
+    const hash = Object.entries(hashParams)
+      .map(([key, value]) => `${key}=${value}`)
+      .join('&');
+    const url = new URL(activeTab.url);
+    url.hash = `#${hash}`;
+    await chrome.tabs.update(activeTab.id, {url: url.toString()});
   }
 }
 
