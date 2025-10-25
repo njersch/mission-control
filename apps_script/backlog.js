@@ -507,38 +507,38 @@ class Backlog {
 
 
   /**
-   * Shows dialog with items marked as 'Next' if any updated are queued.
+   * Shows dialog with items marked as 'Next' since last time it was shown.
    */
   static showSetToNextDialogIfNeeded() {
 
-    // Get queued descriptions
+    // Get queued descriptions.
     const descriptions = this.getQueuedNextItemDescriptions();
     if (descriptions == null || descriptions.length === 0) {
       return;
     }
     
-    // Check if dialogs have been suspended
+    // Don't show anything if dialogs have been suspended.
     const properties = PropertiesService.getDocumentProperties();
     const suspendedTime = properties.getProperty(BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME_PROPERTY_KEY);
     if (suspendedTime != null && Date.now() < JSON.parse(suspendedTime)) {
       return;
     }
 
-    // Suspend dialogs for some time to avoid showing multiple instances
+    // Suspend dialogs for some time to avoid showing multiple instances.
     properties.setProperty(
         BacklogConfig.SET_TO_NEXT_DIALOGS_SUSPENDED_TIME_PROPERTY_KEY,
-        JSON.stringify(Date.now() + 30 * 1000)
+        JSON.stringify(Date.now() + 2 * 60 * 1000) // 2 minutes
     );
 
-    // Show UI
+    // Show UI.
     const ui = SpreadsheetApp.getUi();
     const response = ui.alert(
         `${descriptions.length} waiting ${descriptions.length === 1 ? 'item' : 'items'} moved to '${BacklogConfig.STATUS_NEXT}'`,
         descriptions.join('\n'),
         ui.ButtonSet.OK);
 
-    // Dequeue descriptions
-    if (response === ui.Button.OK) {
+    // Dequeue descriptions if user clicked OK or closed dialog.
+    if (response === ui.Button.OK || response === ui.Button.CLOSE) {
       this.dequeueNextItemDescriptions();
     }
   }
