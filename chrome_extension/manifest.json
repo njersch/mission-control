@@ -49,6 +49,9 @@
       },
       "description": "Mark selected item as done"
     },
+    "enter-waiting-cell": {
+      "description": "Jump into \"Wait until\" cell"
+    },
     "schedule-items": {
       "description": "Schedule items"
     }

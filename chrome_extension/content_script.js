@@ -30,6 +30,48 @@ async function markItemsAsDone(completedColumn) {
 
 
 /**
+ * Selects and enters into the "Wait until" cell of the selected backlog item.
+ * The caller must have already checked that the current tab shows the backlog sheet.
+ */
+async function enterWaitingCell(waitingColumn) {
+
+  let cellIndex = getCurrentCellIndex();
+  if (!cellIndex) {
+    return;
+  }
+
+  // Parse cell index.
+  const { start } = parseCellIndex(cellIndex);
+  if (!start) {
+    return;
+  }
+
+  // Ignore header row.
+  if (start.row < 2) {
+    return;
+  }
+
+  // Set current cell index.
+  await setCurrentCellIndex(`${waitingColumn}${start.row}`);
+
+  // Press enter key.
+  const eventOptions = {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+    which: 13,
+    bubbles: true,
+    cancelable: true,
+    view: window
+  };
+  const editor = document.querySelector('#waffle-rich-text-editor');
+  editor.dispatchEvent(new KeyboardEvent('keydown', eventOptions));
+  editor.dispatchEvent(new KeyboardEvent('keypress', eventOptions));
+  editor.dispatchEvent(new KeyboardEvent('keyup', eventOptions));
+}
+
+
+/**
  * Parses a cell index or range into column and row objects.
  * Handles single cell (e.g., "A1") or range (e.g., "A1:B2").
  * 
@@ -179,6 +221,9 @@ async function simulateValueSet(value) {
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.action === 'mark_item_done') {
     await markItemsAsDone(message.completedColumn);
+    sendResponse({ success: true });
+  } else if (message.action === 'enter_waiting_cell') {
+    await enterWaitingCell(message.waitingColumn);
     sendResponse({ success: true });
   } else if (message.action === 'show_error') {
     alert(message.error);

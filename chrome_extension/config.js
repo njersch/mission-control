@@ -12,8 +12,9 @@ const defaults = {
   HEADER_ROWS: 1,
 
   // Column indices
-  COMPLETED_COLUMN: 1, // one-based
-
+  COLUMN_COMPLETED: 1, // one-based
+  COLUMN_WAITING: 8,
+  
   // Values for status column
   STATUS_WAITING: 'Waiting',
   STATUS_NEXT: 'Next',

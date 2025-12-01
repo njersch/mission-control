@@ -74,8 +74,22 @@ export async function markSelectedItemAsDone() {
   if (!activeTab) {
     return;
   }
-  const completedColumn = String.fromCharCode(64 + config.COMPLETED_COLUMN);
+  const completedColumn = getColumnName(config.COLUMN_COMPLETED);
   const message = { action: 'mark_item_done', completedColumn: completedColumn };
+  chrome.tabs.sendMessage(activeTab.id, message);
+}
+
+
+/**
+ * Selects and enters into the "Wait until" cell of the selected backlog item.
+ */
+export async function enterWaitingCell() {
+  const activeTab = await getActiveTabIfBacklogSheet();
+  if (!activeTab) {
+    return;
+  }
+  const waitingColumn = getColumnName(config.COLUMN_WAITING);
+  const message = { action: 'enter_waiting_cell', waitingColumn: waitingColumn };
   chrome.tabs.sendMessage(activeTab.id, message);
 }
 
@@ -157,4 +171,17 @@ async function getActiveTabIfBacklogSheet() {
   }
 
   return activeTab;
+}
+
+
+/**
+ * Returns the column index for a given column name.
+ * @param {number} columnIndex Column index, one-based
+ * @returns {string} Column name, e.g. "A", "B", "C", etc.
+ */
+function getColumnName(columnIndex) {
+  if (columnIndex < 1 || columnIndex > 26) {
+    throw new Error(`Invalid column index: ${columnIndex}`);
+  }
+  return String.fromCharCode(64 + columnIndex);
 }

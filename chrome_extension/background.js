@@ -28,6 +28,8 @@ chrome.commands.onCommand.addListener((command) => {
     sheetShortcuts.setFilterView();
   } else if (command === 'mark-item-done') {
     sheetShortcuts.markSelectedItemAsDone();
+  } else if (command === 'enter-waiting-cell') {
+    sheetShortcuts.enterWaitingCell();
   } else if (command === 'schedule-items') {
     sheetShortcuts.scheduleItems();
   }
