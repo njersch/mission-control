@@ -6,7 +6,9 @@ export default {
   WEB_APP_DEPLOYMENT_URL: '',
   
   // Actions for configurable keyboards shortcuts.
-  // {
+  //
+  // Example usage:
+  // CONFIGURABLE_SHORTCUTS: {
   //   // Actions for "Configurable shortcut 1"
   //   '1': [
   //     
