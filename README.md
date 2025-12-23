@@ -46,8 +46,6 @@ To quickly open your to-do list and add items from Chrome's address bar, also in
 
 To quickly access your backlog while in Chrome, hit `Ctrl + M` (for **M**ission Control) and your backlog will open in a new pinned tab. If your backlog is already open, Chrome will navigate to the existing tab.
 
-Similarly, you can quickly open your Gmail inbox with `Ctrl + I` and your calendar with `Ctrl + C` (Mac only).
-
 Go to `chrome://extensions/shortcuts` to change these shortcuts or make them available outside of Chrome.
 
 

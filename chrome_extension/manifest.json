@@ -7,6 +7,33 @@
   },
   "omnibox": { "keyword" : "m" },
   "commands": {
+    "configurable-1": {
+      "description": "Configurable shortcut 1"
+    },
+    "configurable-2": {
+      "description": "Configurable shortcut 2"
+    },
+    "configurable-3": {
+      "description": "Configurable shortcut 3"
+    },
+    "configurable-4": {
+      "description": "Configurable shortcut 4"
+    },
+    "configurable-5": {
+      "description": "Configurable shortcut 5"
+    },
+    "configurable-6": {
+      "description": "Configurable shortcut 6"
+    },
+    "configurable-7": {
+      "description": "Configurable shortcut 7"
+    },
+    "configurable-8": {
+      "description": "Configurable shortcut 8"
+    },
+    "configurable-9": {
+      "description": "Configurable shortcut 9"
+    },
     "open-mission-control": {
       "suggested_key": {
         "mac": "MacCtrl+M",
