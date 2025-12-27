@@ -14,11 +14,11 @@ export default {
   //     
   //     // First action
   //     {
-  //       'url_pattern': 'https://example.com/*', // URL pattern as defined in https://developer.chrome.com/docs/extensions/develop/concepts/match-patterns
-  //       'current_tab_only': true, // whether to perform action only if current tab matches URL pattern above
+  //       'url_filter': 'https://example.com/*', // regex to filter tabs based on URLs
+  //       'current_tab_only': true, // whether to perform action only if current tab matches URL filter above
   //       'execute_command': 'my-command', // name of command to execute, as declared under "commands" in manifest
-  //       'switch_to_tab': 'https://example.com', // whether to switch to tab matching URL pattern above or open a new tab with the provided URL
-  //       'change_url': 'https://example.com/foo#bar', // URL to set in last accessed tab that matches URL pattern above
+  //       'switch_to_tab': 'https://example.com', // whether to switch to tab matching URL filter above or open a new tab with the provided URL
+  //       'change_url': 'https://example.com/foo#bar', // URL to set in last accessed tab that matches URL filter above
   //     },
   //     // Second action
   //     { /* ... */ }
