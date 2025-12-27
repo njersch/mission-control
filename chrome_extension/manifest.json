@@ -41,19 +41,6 @@
       },
       "description": "Open tab: Mission Control spreadsheet"
     },
-    "open-inbox": {
-      "suggested_key": {
-        "mac": "MacCtrl+I",
-        "default": "Ctrl+I"
-      },
-      "description": "Open tab: Gmail inbox"
-    },
-    "open-calendar": {
-      "suggested_key": {
-        "mac": "MacCtrl+C"
-      },
-      "description": "Open tab: Calendar"
-    },
     "open-all-filter-view": {
       "description": "Open filter view: All"
     },
