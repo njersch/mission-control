@@ -7,7 +7,7 @@ export function execute(command) {
     const index = command.split('-')[1];
     executeConfigurableShortcut(index);
   } else if (command === 'open-mission-control') {
-    switchToTab(
+    switchToOrOpenTab(
       `https://docs.google.com/*/${config.SPREADSHEET_ID}*`,
       `https://docs.google.com/spreadsheets/d/${config.SPREADSHEET_ID}/edit`
     );
@@ -41,18 +41,26 @@ export async function executeConfigurableShortcut(index) {
 
   for (const action of actions) {
 
+    const matchingTab = await getLastAccessedTab(action.url_filter);
+
     // Skip action if it is only applicable to the current tab,
-    // and the current tab does not match the pattern.
-    if (action.current_tab_only && !(await isCurrentTab(action.url_pattern))) {
-      continue;
+    // and the current tab does not match the URL filter.
+    if (action.current_tab_only) {
+      if (!matchingTab || !matchingTab.active) {
+        continue;
+      }
+      const currentWindow = await chrome.windows.getCurrent();
+      if (matchingTab.windowId !== currentWindow.id) {
+        continue;
+      }
     }
     
     // Perform desired actions.
     if (action.switch_to_tab) {
-      await switchToTab(action.url_pattern, action.switch_to_tab);
+      await switchToOrOpenTab(action.url_filter, action.switch_to_tab);
     }
     if (action.change_url) {
-      await changeUrl(action.url_pattern, action.change_url);
+      await changeUrl(action.url_filter, action.change_url);
     }
     if (action.execute_command) {
       execute(action.execute_command);
@@ -62,36 +70,28 @@ export async function executeConfigurableShortcut(index) {
 
 
 /**
- * Checks if the current tab matches a provided URL pattern.
- * @param urlPattern Pattern to match current tab against
- * @returns {Promise<boolean>} True if the current tab matches the pattern, false otherwise.
- */
-async function isCurrentTab(urlPattern) {
-  const query = { active: true, currentWindow: true, url: urlPattern };
-  const tabs = await chrome.tabs.query(query);
-  return tabs.length > 0;
-}
-
-
-/**
- * Returns the last accessed tab matching a provided URL pattern.
- * @param urlPattern Pattern to match tabs against
+ * Returns the last accessed tab matching a provided URL filter.
+ * @param urlFilter Regular expression to match tabs' URLs against
  * @returns {Promise<object>} Last accessed tab if found, otherwise null
  */
-async function getLastAccessedTab(urlPattern) {
-  const tabs = await chrome.tabs.query({ url: urlPattern });
+async function getLastAccessedTab(urlFilter) {
+  let tabs = await chrome.tabs.query({});
+  tabs = tabs.filter((tab) => tab.url.match(urlFilter));
+  if (tabs.length === 0) {
+    return null;
+  }
   tabs.sort((a, b) => b.lastAccessed - a.lastAccessed);
-  return tabs.length > 0 ? tabs[0] : null;
+  return tabs[0];
 }
 
 
 /**
  * Changes the URL of the last accessed tab matching a provided URL pattern.
- * @param urlPattern Pattern to match tabs against
+ * @param urlFilter Regular expression to match tabs' URLs against
  * @param url URL to change to
  */
-async function changeUrl(urlPattern, url) {
-  const tab = await getLastAccessedTab(urlPattern);
+async function changeUrl(urlFilter, url) {
+  const tab = await getLastAccessedTab(urlFilter);
   if (tab) {
     await chrome.tabs.update(tab.id, { url: url });
   }
@@ -99,46 +99,64 @@ async function changeUrl(urlPattern, url) {
 
 
 /**
- * Switches to or opens a tab matching a provided URL
- * @param urlPattern Pattern to match tabs against
- * @param url URL to open if no corresponding tab is found
+ * Opens a new tab.
+ * @param url URL to open
+ * @returns {Promise<object>} Newly opened tab
  */
-async function switchToTab(urlPattern, url) {
+async function openTab(url) {
 
-  let tab = await getLastAccessedTab(urlPattern);
-
-  // Open tab if needed.
-  if (tab == null) {
-
-    // Open window if needed.
-    const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
-    let tabsToClose = null;
-    if (windows.length == 0) {
-      const window = await chrome.windows.create({ focused: true });
-      tabsToClose = window.tabs;
-    }
-
-    // Open tab.
-    tab = await chrome.tabs.create({
-      url: url,
-      index: 0,
-      pinned: true,
-      active: true
-    });
-
-    // Close other tabs of new window if needed.
-    if (tabsToClose) {
-      await chrome.tabs.remove(tabsToClose.map((tab) => tab.id));
-    }
-  } else {
-
-    // Switch to tab.
-    await chrome.tabs.highlight({
-      windowId: tab.windowId,
-      tabs: tab.index
-    });
+  // Open window if needed.
+  const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
+  let tabsToClose = null;
+  if (windows.length == 0) {
+    const window = await chrome.windows.create({ focused: true });
+    tabsToClose = window.tabs;
   }
+
+  // Open tab.
+  const tab = await chrome.tabs.create({
+    url: url,
+    index: 0,
+    pinned: true,
+    active: true
+  });
+
+  // Close other tabs of new window if needed.
+  if (tabsToClose) {
+    await chrome.tabs.remove(tabsToClose.map((tab) => tab.id));
+  }
+
+  return tab;
+}
+
+
+/**
+ * Switches to a provided tab.
+ * @param tab Tab to switch to
+ */
+async function switchToTab(tab) {
+
+  // Switch to tab.
+  await chrome.tabs.highlight({
+    windowId: tab.windowId,
+    tabs: tab.index
+  });
 
   // Focus window.
   await chrome.windows.update(tab.windowId, { focused: true });
+}
+
+
+/**
+ * Switches to or opens a tab matching a provided URL.
+ * @param urlFilter Regular expression to match tabs' URLs against
+ * @param url URL to open if no corresponding tab is found
+ */
+async function switchToOrOpenTab(urlFilter, url) {
+  let tab = await getLastAccessedTab(urlFilter);
+  if (!tab) {
+    tab = await openTab(url);
+  }
+  await switchToTab(tab);
+  return tab;
 }
