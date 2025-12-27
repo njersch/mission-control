@@ -8,7 +8,7 @@ export function execute(command) {
     executeConfigurableShortcut(index);
   } else if (command === 'open-mission-control') {
     switchToOrOpenTab(
-      `https://docs.google.com/*/${config.SPREADSHEET_ID}*`,
+      new RegExp(`^https:\/\/docs.google.com\/.+\/${config.SPREADSHEET_ID}`),
       `https://docs.google.com/spreadsheets/d/${config.SPREADSHEET_ID}/edit`
     );
   } else if (command === 'open-all-filter-view') {
