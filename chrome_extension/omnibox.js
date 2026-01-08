@@ -305,7 +305,7 @@ async function insertItem(input) {
  * Gets displayed title of item by removing markdown links.
  */
 function getDisplayedTitle(title) {
-  const matches = [...title.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\]\(]*)\))/g)];
+  const matches = [...title.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\)]*)\))/g)];
   let removedCharacters = 0;
   for (const match of matches) {
     const { markdown, text } = match.groups;

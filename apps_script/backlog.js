@@ -1062,7 +1062,7 @@ class Backlog {
   static makeRichTextWithLinks(markdownText) {
 
     // Parse links.
-    const matches = [...markdownText.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\]\(]*)\))/g)];
+    const matches = [...markdownText.matchAll(/(?<markdown>\[(?<text>[^\[]+)\]\((?<url>[^\)]*)\))/g)];
     const links = [];
     let text = markdownText;
     let removedCharacters = 0;
