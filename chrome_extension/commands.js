@@ -65,6 +65,9 @@ export async function executeConfigurableShortcut(index) {
     if (action.execute_command) {
       execute(action.execute_command);
     }
+    if (action.execute_code) {
+      action.execute_code(matchingTab?.id);
+    }
   }
 }
 
