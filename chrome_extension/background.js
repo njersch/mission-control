@@ -1,4 +1,3 @@
-import config from './config.js';
 import * as omnibox from './omnibox.js';
 import * as commands from './commands.js';
 
