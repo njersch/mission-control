@@ -194,7 +194,7 @@ function getTagSuggestions(input, rawTagPrefix, tags) {
     const prefixLength = rawTagPrefix ? rawTagPrefix.length : 0;
     return {
       content: input.substring(0, input.length - prefixLength) + '#' + tag.tag + ':',
-      description: `<match><url>#${tag.tag}</url></match><dim>  -  ${tag.description}</dim> `,
+      description: `<match><url>#${escapeHtml(tag.tag)}</url></match><dim>  -  ${escapeHtml(tag.description)}</dim> `,
       deletable: false
     }
   });
@@ -231,7 +231,7 @@ async function getTagValueSuggestions(input, tag, valuePrefix) {
 
     return {
       content: `${input.substring(0, input.length - valuePrefix.length) + wrappedValue} `, // trailing space
-      description: `<dim>#${matchingTag.tag}:</dim> <match><url>${value}</url></match>`,
+      description: `<dim>#${escapeHtml(matchingTag.tag)}:</dim> <match><url>${escapeHtml(value)}</url></match>`,
       deletable: false
     }
   });
@@ -322,4 +322,17 @@ function getDisplayedTitle(title) {
     removedCharacters += markdown.length - text.length;
   }
   return title;
+}
+
+
+/**
+ * Escapes HTML characters in a given text.
+ */
+function escapeHtml(text) {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('\'', '&#039;');
 }
