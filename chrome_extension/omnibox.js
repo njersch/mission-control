@@ -32,6 +32,11 @@ const TAGS = [
     tag: config.TAG_SCHEDULE,
     description: 'Schedule in calendar',
     getPossibleValues: () => Promise.resolve(['30', '45', '60', '90', '120'])
+  },
+  {
+    tag: config.TAG_SCHEDULE_ONLY,
+    description: 'Schedule in calendar without adding to backlog',
+    getPossibleValues: () => Promise.resolve(['30', '45', '60', '90', '120'])
   }
 ];
 
@@ -99,7 +104,7 @@ function parseInput(input) {
 
   // Regex to extract tags from raw input. The capture group 'tag' captures the tag name (e.g. "project"), 'value'
   // captures the corresponding value (e.g. "My Project"), and 'raw' the full expression (e.g. "#project:(My Project)")
-  const matches = [...input.matchAll(/(^|\s)(?<raw>#(?<tag>\w*)(:(?<value>\(([^()]*)\)|(\S*))?)?)/g)];
+  const matches = [...input.matchAll(/(^|\s)(?<raw>#(?<tag>[^\s:]*)(:(?<value>\(([^()]*)\)|(\S*))?)?)/g)];
 
   // Extract title of item by removing tags and values
   let title = input;
@@ -250,7 +255,9 @@ async function insertItem(input) {
   const project = consolidatedTags[config.TAG_PROJECT];
   const priority = consolidatedTags[config.TAG_PRIORITY];
   let dayShortcut = consolidatedTags[config.TAG_DATE];
-  const scheduledTime = consolidatedTags[config.TAG_SCHEDULE];
+  const scheduleOnlyTime = consolidatedTags[config.TAG_SCHEDULE_ONLY];
+  const scheduledTime = scheduleOnlyTime || consolidatedTags[config.TAG_SCHEDULE];
+  const calendarOnly = scheduleOnlyTime !== undefined;
 
   // Determine status.
   let status;
@@ -273,6 +280,7 @@ async function insertItem(input) {
     status,
     dayShortcut,
     scheduledTime,
+    calendarOnly,
   };
   params = Object.fromEntries(Object.entries(params).filter(([_, v]) => v !== undefined));
 
@@ -292,7 +300,7 @@ async function insertItem(input) {
       eventTime: Date.now() + 1 * 1000, // 1 second delay
     });
     notifications.clearNotification(notificationId);
-    throw error;
+    return;
   }
   notifications.updateNotification({
     notificationId,

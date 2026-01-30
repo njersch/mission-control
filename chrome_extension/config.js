@@ -24,6 +24,7 @@ const defaults = {
   TAG_PRIORITY: 'prio',
   TAG_DATE: 'when',
   TAG_SCHEDULE: 'calendar',
+  TAG_SCHEDULE_ONLY: 'calendar-only',
 };
 
 // Merge local config with defaults and export.

@@ -27,14 +27,30 @@ const getWebApp = () => {
   webApp.on(WebApp.RequestType.POST, '/create-backlog-item', (params) => {
 
     // Parse parameters.
-    let { title, project, priority, status, dayShortcut, scheduledTime } = params;
+    let { title, project, priority, status, dayShortcut, scheduledTime, calendarOnly } = params;
     priority = priority !== undefined ? Number.parseInt(priority) : undefined;
     scheduledTime = scheduledTime !== undefined ? Number.parseInt(scheduledTime) : undefined;
+    calendarOnly = calendarOnly === 'true';
     const waitingDate = dayShortcut ? Backlog.convertDayShortcutToDate(dayShortcut) : null;
-    
-    // Insert item.
-    const item = new BacklogItem({ title, project, priority, status, waitingDate, scheduledTime });
-    Backlog.insertBacklogItem(item);
+
+    let schedulingError = false;
+
+    // If scheduled time is set and calendar only is requested, schedule event directly
+    // without inserting item into backlog.
+    if (calendarOnly && scheduledTime) {
+      schedulingError = !Scheduler.tryScheduleEvent(null, title, scheduledTime, new Date());
+    }
+
+    // Insert item if requested by user or if scheduling was unsuccessful.
+    if (!calendarOnly || schedulingError) {
+      const item = new BacklogItem({ title, project, priority, status, waitingDate, scheduledTime });
+      Backlog.insertBacklogItem(item);
+    }
+
+    // Report error if scheduling was unsuccessful.
+    if (schedulingError) {
+      throw new Error('Could not schedule event.');
+    }
   });
   
   // End point to schedule events via shortcut.
@@ -145,15 +161,6 @@ function setWaitingItemsToNext() {
  */
 function scheduleAllEventsLoudly() {
   Backlog.scheduleEvents(false, true);
-}
-
-
-/**
- * Function to schedule events for backlog items that are marked as automatically
- * schedulable. Globally callable, for example from a trigger.
- */
-function scheduleAutomaticallySchedulableEventsSilently() {
-  Backlog.scheduleEvents(true, false);
 }
 
 

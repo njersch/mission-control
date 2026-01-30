@@ -9,7 +9,9 @@ class Scheduler {
     if (startTime) {
       const endTime = new Date(startTime.getTime() + length*60*1000);
       const event = this.getCalendar().createEvent(title, startTime, endTime);
-      this.setEventTag(event, tag);
+      if (tag) {
+        this.setEventTag(event, tag);
+      }
       event.setVisibility(visibility);
       event.setColor(SchedulerConfig.COLOR);
       return true;
