@@ -334,10 +334,11 @@ class Backlog {
       endOfDay.setUTCHours(23, 59, 59, 999);
       endOfDay = TimeZones.convert(endOfDay, TimeZones.UTC(), TimeZones.getCalendarTimeZone());
 
-      const updatedItemDescriptions = [];
+      const rowsWithWaitingDates = this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING);
+      const rowsToSetToNext = [];
 
-      // Iterate through all waiting dates.
-      for (const [row, waitingDate] of this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_WAITING)) {
+      // Iterate over all rows with waiting dates.
+      for (const [row, waitingDate] of rowsWithWaitingDates) {
 
         const isDate = waitingDate instanceof Date;
         const isPastDate = isDate && waitingDate.getTime() <= endOfDay.getTime();
@@ -347,24 +348,39 @@ class Backlog {
           sheet.getRange(row, BacklogConfig.COLUMN_WAITING).clearContent();
         }
 
-        // Set status to 'Next' if waiting date is in the past or not a date.
+        // Mark row for setting to 'Next' if waiting date is in the past or not a date.
         // Including non-date values allows user to spot and correct mistakes in waiting date.
         if (isPastDate || !isDate) {
-          
           const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
           const status = statusRange.getValue();
           if (status !== BacklogConfig.STATUS_NEXT) {
-
-            // Set status to 'Next'.
-            const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
-            statusRange.setValue(BacklogConfig.STATUS_NEXT);
-            
-            // Mark item for later display to user.
-            const title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
-            const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
-            updatedItemDescriptions.push(`${title} (${project})`);
+            rowsToSetToNext.push(row);
           }
         }
+      }
+
+      // Mark all rows with waiting status but no waiting date for setting to 'Next'.
+      // This prevents items from being permanently marked as 'Waiting' if user forgets to set a
+      // waiting date.
+      const rowsWithWaitingStatusButNoDate = this.getNonEmptyBacklogRowsInColumn(BacklogConfig.COLUMN_STATUS)
+        .filter(([row, status]) => {
+          return status === BacklogConfig.STATUS_WAITING
+            && !rowsWithWaitingDates.some(([otherRow, _]) => row === otherRow);
+        });
+      rowsToSetToNext.push(...rowsWithWaitingStatusButNoDate.map(([row, _]) => row));
+
+      // Make updates to rows and queue descriptions for later display to user.
+      const updatedItemDescriptions = [];
+      for (const row of rowsToSetToNext) {
+        
+        // Set status to 'Next'.
+        const statusRange = sheet.getRange(row, BacklogConfig.COLUMN_STATUS);
+        statusRange.setValue(BacklogConfig.STATUS_NEXT);
+        
+        // Mark item for later display to user.
+        const title = sheet.getRange(row, BacklogConfig.COLUMN_TITLE).getValue();
+        const project = sheet.getRange(row, BacklogConfig.COLUMN_PROJECT).getValue();
+        updatedItemDescriptions.push(`${title} (${project})`);
       }
 
       // Queue descriptions for later display to user.
