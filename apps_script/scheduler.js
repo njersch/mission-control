@@ -124,6 +124,11 @@ class Scheduler {
         continue;
       }
 
+      // Ignore working location events
+      if (event.getEventType() === CalendarApp.EventType.WORKING_LOCATION) {
+        continue;
+      }
+
       // Mark corresponding slots as unavailable
       const endSlotIndex = this.getSlotIndex(event.getEndTime(), Math.ceil);
       if (endSlotIndex <= 0) {
